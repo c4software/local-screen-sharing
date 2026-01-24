@@ -14,7 +14,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f0f0f;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -24,23 +24,26 @@
 
         .player-container {
             width: 100%;
-            max-width: 1400px;
-            background: #1a1a1a;
-            border-radius: 16px;
+            max-width: 1200px;
+            background: white;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
 
         .video-wrapper {
             position: relative;
             background: #000;
-            aspect-ratio: 16/9;
+            border-radius: 12px;
+            margin: 20px;
+            overflow: hidden;
         }
 
         video {
             width: 100%;
             height: 100%;
             display: block;
+            border-radius: 12px;
         }
 
         .placeholder {
@@ -51,6 +54,8 @@
             justify-content: center;
             align-items: center;
             color: #666;
+            background: #f3f4f6;
+            border-radius: 12px;
         }
 
         .placeholder.hidden {
@@ -63,48 +68,59 @@
         }
 
         .controls {
-            background: #1a1a1a;
-            padding: 25px 30px;
+            background: white;
+            padding: 0 30px 30px 30px;
         }
 
         .header {
             display: flex;
             align-items: center;
             gap: 15px;
-            margin-bottom: 20px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #333;
+            margin-bottom: 10px;
         }
 
         .back-btn {
-            background: #2a2a2a;
-            border: 1px solid #333;
+            background: #f3f4f6;
+            border: none;
             border-radius: 8px;
             width: 40px;
             height: 40px;
             font-size: 20px;
-            color: #999;
             cursor: pointer;
             transition: all 0.3s ease;
         }
 
         .back-btn:hover {
-            background: #333;
-            color: #fff;
+            background: #e5e7eb;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+            margin-left: 55px;
         }
 
         .status-bar {
             display: flex;
             align-items: center;
-            gap: 15px;
-            flex: 1;
+            gap: 10px;
+            background: #f3f4f6;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
         }
 
         .status-indicator {
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            background: #666;
+            background: #9ca3af;
             animation: pulse 2s ease-in-out infinite;
         }
 
@@ -129,7 +145,7 @@
         }
 
         .status-text {
-            color: #999;
+            color: #666;
             font-size: 14px;
         }
 
@@ -144,16 +160,15 @@
         .input-group {
             display: flex;
             gap: 15px;
-            margin-bottom: 20px;
         }
 
         input {
             flex: 1;
-            padding: 14px 18px;
-            background: #2a2a2a;
-            border: 2px solid #333;
-            border-radius: 10px;
-            color: white;
+            padding: 16px;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            color: #333;
             font-size: 16px;
             text-transform: uppercase;
             letter-spacing: 4px;
@@ -165,19 +180,19 @@
         input:focus {
             outline: none;
             border-color: #667eea;
-            background: #333;
+            background: white;
         }
 
         input::placeholder {
-            color: #666;
+            color: #9ca3af;
             text-transform: none;
             letter-spacing: normal;
         }
 
         .btn {
-            padding: 14px 28px;
+            padding: 16px 28px;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
@@ -199,30 +214,36 @@
             cursor: not-allowed;
         }
 
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .stat-card {
-            background: #2a2a2a;
-            padding: 15px;
+        .fullscreen-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
-            border: 1px solid #333;
-        }
-
-        .stat-label {
-            color: #999;
-            font-size: 12px;
-            margin-bottom: 5px;
-        }
-
-        .stat-value {
+            width: 48px;
+            height: 48px;
+            font-size: 24px;
             color: #fff;
-            font-size: 18px;
-            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(102, 126, 234, 0.8);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: scale(1.1);
+        }
+
+        .player-container:fullscreen {
+            max-width: none;
+            border-radius: 0;
+        }
+
+        .player-container:fullscreen .controls {
+            display: none;
         }
     </style>
 </head>
@@ -235,15 +256,19 @@
                 <div class="placeholder-icon">📺</div>
                 <div>En attente de connexion...</div>
             </div>
+            <button id="fullscreenBtn" class="fullscreen-btn" title="Plein écran">⛶</button>
         </div>
 
         <div class="controls">
             <div class="header">
                 <button class="back-btn" onclick="window.location.href='/'">←</button>
-                <div class="status-bar">
-                    <div id="statusIndicator" class="status-indicator"></div>
-                    <div id="statusText" class="status-text">Déconnecté</div>
-                </div>
+                <h1>📺 Client</h1>
+            </div>
+            <p class="subtitle">Connectez-vous au flux P2P</p>
+
+            <div class="status-bar">
+                <div id="statusIndicator" class="status-indicator"></div>
+                <div id="statusText" class="status-text">Déconnecté</div>
             </div>
 
             <div class="input-group">
@@ -254,22 +279,6 @@
                        maxlength="4" />
                 <button id="connectBtn" class="btn btn-primary">🔗 Connecter</button>
             </div>
-
-            <div class="stats">
-                <div class="stat-card">
-                    <div class="stat-label">État de connexion</div>
-                    <div class="stat-value" id="connState">Déconnecté</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">État ICE</div>
-                    <div class="stat-value" id="iceState">Nouveau</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Type de connexion</div>
-                    <div class="stat-value" id="candidateType">-</div>
-                </div>
-
-            </div>
         </div>
     </div>
 
@@ -277,7 +286,6 @@
     <script>
         let pc = null;
         let socket = null;
-        let statsInterval = null;
 
         const remoteVideo = document.getElementById('remoteVideo');
         const placeholder = document.getElementById('placeholder');
@@ -290,10 +298,6 @@
             statusIndicator.className = `status-indicator ${state}`;
             statusText.className = `status-text ${state}`;
             statusText.textContent = text;
-        }
-
-        function updateStats() {
-            // Stats disponibles via les indicateurs visuels
         }
 
         async function connect() {
@@ -322,21 +326,11 @@
                         remoteVideo.srcObject = event.streams[0];
                         placeholder.classList.add('hidden');
                         updateStatus('connected', 'Connecté - Flux P2P actif');
-
-                        // Mettre à jour les stats (avec gestion de l'intervalle)
-                        if (!statsInterval) {
-                            statsInterval = setInterval(updateStats, 1000);
-                        }
                     };
 
                     pc.onicecandidate = (e) => {
                         if (e.candidate) {
                             console.log('ICE Candidate:', e.candidate.type);
-
-                            if (e.candidate.type) {
-                                document.getElementById('candidateType').textContent = e.candidate.type;
-                            }
-
                             socket.emit('send-ice-candidate', {
                                 sessionCode,
                                 candidate: e.candidate
@@ -346,7 +340,7 @@
 
                     pc.oniceconnectionstatechange = () => {
                         const state = pc.iceConnectionState;
-                        document.getElementById('iceState').textContent = state;
+                        console.log('État ICE:', state);
 
                         if (state === 'connected' || state === 'completed') {
                             updateStatus('connected', '✅ Connexion P2P établie');
@@ -359,7 +353,7 @@
 
                     pc.onconnectionstatechange = () => {
                         const state = pc.connectionState;
-                        document.getElementById('connState').textContent = state;
+                        console.log('État connexion:', state);
 
                         if (state === 'disconnected' || state === 'failed' || state === 'closed') {
                             updateStatus('', 'Déconnecté');
@@ -414,10 +408,6 @@
         }
 
         function cleanup() {
-            if (statsInterval) {
-                clearInterval(statsInterval);
-                statsInterval = null;
-            }
             if (pc) {
                 pc.close();
                 pc = null;
@@ -426,7 +416,6 @@
                 socket.disconnect();
                 socket = null;
             }
-
         }
 
         connectBtn.addEventListener('click', connect);
@@ -434,8 +423,43 @@
             if (e.key === 'Enter') connect();
         });
 
+        // Gestion du plein écran
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const playerContainer = document.querySelector('.player-container');
+
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                playerContainer.requestFullscreen().catch(err => {
+                    console.error('Erreur plein écran:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        // Mettre à jour l'icône du bouton selon l'état
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fullscreenBtn.textContent = '⛶';
+            } else {
+                fullscreenBtn.textContent = '⛶';
+            }
+        });
+
+        // Support des touches clavier (F pour fullscreen, Escape pour sortir)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'f' || e.key === 'F') {
+                if (!document.fullscreenElement) {
+                    playerContainer.requestFullscreen().catch(err => {
+                        console.error('Erreur plein écran:', err);
+                    });
+                }
+            }
+        });
+
         console.log('%c✅ CLIENT P2P', 'color: green; font-size: 16px; font-weight: bold;');
         console.log('Entrez le code de session pour vous connecter');
+        console.log('Astuce: Appuyez sur F pour passer en plein écran');
     </script>
 </body>
 
