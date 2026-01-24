@@ -51,7 +51,7 @@ local-screen-sharing/
 
 ### Prérequis
 
-- Node.js 20+ installé
+- Node.js 24+ (support de Typescript)
 - npm installé
 
 ### Étapes
