@@ -1,0 +1,127 @@
+import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/module.esm.js'
+import Signaling from './modules/Signaling.js';
+import WebRTC from './modules/WebRTC.js';
+
+Alpine.data('receiver', () => ({
+    status: 'disconnected', // disconnected, connecting, connected
+    statusText: 'Déconnecté',
+    code: '',
+    isConnected: false,
+    signaling: null,
+    webrtc: null,
+    sessionCode: '',
+
+    init() {
+        this.signaling = new Signaling();
+        this.setupSignalingListeners();
+
+        // Raccourcis clavier (F)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'f' || e.key === 'F') this.toggleFullscreen();
+        });
+
+        // Clean up fullscreen orientation on exit
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+            }
+        });
+    },
+
+    setupSignalingListeners() {
+        this.signaling.connect();
+
+        this.signaling.on('receive-offer', async ({ offer }) => {
+            if (!this.webrtc) return;
+            try {
+                await this.webrtc.setRemoteDescription(offer);
+                const answer = await this.webrtc.createAnswer();
+                this.signaling.sendAnswer(this.sessionCode, answer);
+            } catch (e) {
+                console.error('Error handling offer', e);
+            }
+        });
+
+        this.signaling.on('receive-ice-candidate', async ({ candidate }) => {
+            if (this.webrtc) {
+                await this.webrtc.addIceCandidate(candidate);
+            }
+        });
+
+        this.signaling.on('session-joined', () => {
+            this.updateStatus('connecting', 'En attente du flux...');
+        });
+
+        this.signaling.on('sender-disconnected', () => {
+            this.updateStatus('disconnected', 'Serveur déconnecté');
+            this.disconnect(false);
+        });
+
+        this.signaling.on('error', ({ message }) => {
+            alert('Erreur: ' + message);
+            this.updateStatus('disconnected', 'Erreur');
+            this.disconnect();
+        });
+    },
+
+    updateStatus(type, text) {
+        this.status = type;
+        this.statusText = text;
+    },
+
+    connect() {
+        const code = this.code.trim().toUpperCase();
+        if (code.length !== 4) {
+            alert('Le code doit faire 4 caractères');
+            return;
+        }
+
+        this.sessionCode = code;
+        this.updateStatus('connecting', 'Connexion...');
+
+        this.webrtc = new WebRTC(this.signaling);
+        this.webrtc.createPeerConnection(this.sessionCode);
+
+        this.webrtc.onTrack = (stream) => {
+            this.$refs.remoteVideo.srcObject = stream;
+            this.isConnected = true;
+            this.updateStatus('connected', 'Connecté');
+        };
+
+        this.webrtc.onConnectionStateChange = (state) => {
+            if (state === 'connected') this.updateStatus('connected', 'Connecté (P2P)');
+            else if (state === 'disconnected') this.updateStatus('disconnected', 'Déconnecté');
+            else if (state === 'failed') this.updateStatus('disconnected', 'Échec');
+        };
+
+        this.signaling.joinSession(this.sessionCode);
+    },
+
+    disconnect(fullReset = true) {
+        if (this.webrtc) {
+            this.webrtc.close();
+            this.webrtc = null;
+        }
+        this.$refs.remoteVideo.srcObject = null;
+        this.isConnected = false;
+
+        if (fullReset) {
+            this.updateStatus('disconnected', 'Déconnecté');
+            this.code = '';
+        }
+    },
+
+    toggleFullscreen() {
+        const wrapper = this.$refs.videoWrapper;
+        if (!document.fullscreenElement) {
+            wrapper.requestFullscreen().catch(console.error);
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => { });
+            }
+        } else {
+            document.exitFullscreen();
+        }
+    }
+}));
+
+Alpine.start();

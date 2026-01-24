@@ -5,414 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Serveur - Partage d'écran</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 30px;
-        }
-
-        /* Header */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 30px;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .back-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            width: 40px;
-            height: 40px;
-            font-size: 20px;
-            color: #94a3b8;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .back-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
-
-        .title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .title-icon {
-            font-size: 24px;
-        }
-
-        .title h1 {
-            color: #f1f5f9;
-            font-size: 24px;
-            font-weight: 600;
-        }
-
-        .status-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            padding: 8px 16px;
-            border-radius: 20px;
-        }
-
-        .status-badge.inactive {
-            background: rgba(107, 114, 128, 0.15);
-            border-color: rgba(107, 114, 128, 0.3);
-        }
-
-        .status-badge.warning {
-            background: rgba(245, 158, 11, 0.15);
-            border-color: rgba(245, 158, 11, 0.3);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #10b981;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .status-badge.inactive .status-dot {
-            background: #6b7280;
-            animation: none;
-        }
-
-        .status-badge.warning .status-dot {
-            background: #f59e0b;
-        }
-
-        .status-text {
-            color: #10b981;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .status-badge.inactive .status-text {
-            color: #9ca3af;
-        }
-
-        .status-badge.warning .status-text {
-            color: #f59e0b;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* Session Code Card */
-        .session-card {
-            background: #1e293b;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 24px;
-            display: none;
-        }
-
-        .session-card.active {
-            display: block;
-        }
-
-        .session-label {
-            color: #94a3b8;
-            font-size: 14px;
-            margin-bottom: 12px;
-            text-align: center;
-        }
-
-        .session-code {
-            font-size: 48px;
-            font-weight: bold;
-            color: #667eea;
-            text-align: center;
-            letter-spacing: 12px;
-            font-family: 'Courier New', monospace;
-            text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
-        }
-
-        /* Video Container */
-        .video-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: #1e293b;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-
-        .video-wrapper {
-            flex: 1;
-            position: relative;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 300px;
-        }
-
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-        }
-
-        .placeholder {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #64748b;
-            background: #0f172a;
-        }
-
-        .placeholder.hidden {
-            display: none;
-        }
-
-        .placeholder-icon {
-            font-size: 80px;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
-
-        .placeholder-text {
-            font-size: 18px;
-        }
-
-        /* Video Controls Bar */
-        .video-controls {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 10px;
-            padding: 12px 16px;
-            background: rgba(0, 0, 0, 0.5);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .video-container:hover .video-controls {
-            opacity: 1;
-        }
-
-        .control-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 8px;
-            width: 40px;
-            height: 40px;
-            font-size: 18px;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .control-btn:hover {
-            background: rgba(102, 126, 234, 0.8);
-            transform: scale(1.1);
-        }
-
-        /* Action Panel */
-        .action-panel {
-            background: #1e293b;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 24px;
-        }
-
-        /* Settings Row */
-        .settings-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .setting-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .setting-label {
-            color: #94a3b8;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        .setting-select {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            padding: 10px 12px;
-            color: #f1f5f9;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .setting-select:hover {
-            border-color: rgba(102, 126, 234, 0.5);
-        }
-
-        .setting-select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-        }
-
-        .setting-select option {
-            background: #1e293b;
-            color: #f1f5f9;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 18px;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: rgba(99, 102, 241, 0.2);
-            border: 1px solid rgba(99, 102, 241, 0.4);
-            color: #a5b4fc;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            background: rgba(99, 102, 241, 0.3);
-        }
-
-        .btn-danger {
-            background: rgba(239, 68, 68, 0.2);
-            border: 1px solid rgba(239, 68, 68, 0.4);
-            color: #fca5a5;
-        }
-
-        .btn-danger:hover:not(:disabled) {
-            background: rgba(239, 68, 68, 0.3);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .button-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        .button-group .btn {
-            margin: 0;
-        }
-
-        #activeControls {
-            display: none;
-        }
-
-        /* Fullscreen Mode */
-        .video-wrapper:fullscreen {
-            background: #000;
-        }
-
-        .video-wrapper:fullscreen video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        .video-wrapper:fullscreen .placeholder {
-            background: #000;
-        }
-
-        .video-wrapper:fullscreen .fullscreen-controls {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: flex-end;
-            padding: 20px;
-            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .video-wrapper:fullscreen:hover .fullscreen-controls {
-            opacity: 1;
-        }
-
-        .fullscreen-controls {
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="js/sender.js"></script>
 </head>
 
-<body>
+<body x-data="sender">
     <div class="header">
         <div class="header-left">
             <button class="back-btn" onclick="window.location.href='/'">←</button>
@@ -421,342 +19,66 @@
                 <h1>Serveur</h1>
             </div>
         </div>
-        <div id="statusBadge" class="status-badge inactive">
+        <div class="status-badge" :class="status">
             <div class="status-dot"></div>
-            <span id="statusText" class="status-text">Inactif</span>
+            <span class="status-text" x-text="statusText">Inactif</span>
         </div>
     </div>
 
     <div class="main-content">
-        <div id="sessionCard" class="session-card">
+        <div class="session-card" :class="{ 'active': isSessionActive }">
             <div class="session-label">Code de session à partager</div>
-            <div class="session-code" id="codeDisplay">----</div>
+            <div class="session-code" x-text="sessionCode">----</div>
         </div>
 
         <div class="video-container">
-            <div class="video-wrapper" id="videoWrapper">
-                <video id="preview" autoplay muted playsinline></video>
-                <div id="placeholder" class="placeholder">
+            <div class="video-wrapper" x-ref="videoWrapper" @dblclick="toggleFullscreen">
+                <video x-ref="preview" autoplay muted playsinline></video>
+                <div class="placeholder" :class="{ 'hidden': stream }">
                     <div class="placeholder-icon">🖥️</div>
                     <div class="placeholder-text">Cliquez sur "Partager" pour commencer</div>
                 </div>
                 <div class="fullscreen-controls">
-                    <button class="control-btn" id="exitFullscreenBtn" title="Quitter plein écran">✕</button>
+                    <button class="control-btn" @click="toggleFullscreen" title="Quitter plein écran">✕</button>
                 </div>
             </div>
             <div class="video-controls">
-                <button class="control-btn" id="fullscreenBtn" title="Plein écran">⛶</button>
+                <button class="control-btn" @click="toggleFullscreen" title="Plein écran">⛶</button>
             </div>
         </div>
 
         <div class="action-panel">
-            <div class="settings-row" id="settingsRow">
+            <div class="settings-row">
                 <div class="setting-group">
                     <label class="setting-label">Images/sec (FPS)</label>
-                    <select id="fpsSelect" class="setting-select">
+                    <select x-model="fps" @change="updateFps" class="setting-select">
                         <option value="60">60 FPS (Fluide)</option>
-                        <option value="30" selected>30 FPS (Standard)</option>
+                        <option value="30">30 FPS (Standard)</option>
                         <option value="15">15 FPS (Économique)</option>
                         <option value="5">5 FPS (Diaporama)</option>
                     </select>
                 </div>
                 <div class="setting-group">
                     <label class="setting-label">Qualité (Résolution)</label>
-                    <select id="scaleSelect" class="setting-select">
+                    <select x-model="scale" @change="updateScale" class="setting-select">
                         <option value="1">100% (Original)</option>
                         <option value="1.33">75%</option>
-                        <option value="2" selected>50% (Recommandé)</option>
+                        <option value="2">50% (Recommandé)</option>
                         <option value="4">25% (Léger)</option>
                     </select>
                 </div>
             </div>
-            <button id="shareBtn" class="btn btn-primary">🖥️ Partager mon écran</button>
 
-            <div id="activeControls">
+            <button x-show="!isSessionActive" @click="startSharing" class="btn btn-primary">🖥️ Partager mon écran</button>
+
+            <div x-show="isSessionActive">
                 <div class="button-group">
-                    <button id="changeSourceBtn" class="btn btn-secondary">🔄 Changer la source</button>
-                    <button id="stopBtn" class="btn btn-danger">⏹️ Arrêter</button>
+                    <button @click="changeSource" class="btn btn-secondary">🔄 Changer la source</button>
+                    <button @click="stopSharing" class="btn btn-danger">⏹️ Arrêter</button>
                 </div>
             </div>
         </div>
     </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        let pc = null;
-        let stream = null;
-        let socket = null;
-        const sessionCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-
-        const shareBtn = document.getElementById('shareBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const changeSourceBtn = document.getElementById('changeSourceBtn');
-        const activeControls = document.getElementById('activeControls');
-        const statusBadge = document.getElementById('statusBadge');
-        const statusText = document.getElementById('statusText');
-        const sessionCard = document.getElementById('sessionCard');
-        const codeDisplayEl = document.getElementById('codeDisplay');
-        const previewEl = document.getElementById('preview');
-        const placeholder = document.getElementById('placeholder');
-        const videoWrapper = document.getElementById('videoWrapper');
-        const fullscreenBtn = document.getElementById('fullscreenBtn');
-        const exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
-        const fpsSelect = document.getElementById('fpsSelect');
-        const scaleSelect = document.getElementById('scaleSelect');
-        const settingsRow = document.getElementById('settingsRow');
-
-        function showStatus(message, type = 'inactive') {
-            statusBadge.className = `status-badge ${type}`;
-            statusText.textContent = message;
-        }
-
-        function getVideoConstraints() {
-            const fps = parseInt(fpsSelect.value, 10);
-            return {
-                frameRate: { max: fps }
-            };
-        }
-
-        function applyEncodingParams(sender) {
-            const scale = parseFloat(scaleSelect.value);
-            const params = sender.getParameters();
-            if (!params.encodings || params.encodings.length === 0) {
-                params.encodings = [{}];
-            }
-            params.encodings[0].scaleResolutionDownBy = scale;
-            sender.setParameters(params).catch(e => console.error('setParameters error:', e));
-        }
-
-        async function changeSource() {
-            try {
-                showStatus('Sélection...', 'warning');
-
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
-                }
-
-                stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: getVideoConstraints(),
-                    audio: false
-                });
-
-                previewEl.srcObject = stream;
-                placeholder.classList.add('hidden');
-
-                if (pc) {
-                    const videoTrack = stream.getVideoTracks()[0];
-                    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-
-                    if (sender) {
-                        await sender.replaceTrack(videoTrack);
-                        applyEncodingParams(sender);
-                        showStatus('En diffusion', 'connected');
-                    }
-                }
-
-                stream.getVideoTracks()[0].onended = () => {
-                    showStatus('Arrêté', 'warning');
-                    stopSharing();
-                };
-
-            } catch (err) {
-                showStatus('Erreur', 'warning');
-                console.error(err);
-            }
-        }
-
-        async function startSharing() {
-            try {
-                showStatus('Connexion...', 'warning');
-
-                socket = io();
-
-                socket.on('connect', async () => {
-                    showStatus('Capture...', 'warning');
-
-                    stream = await navigator.mediaDevices.getDisplayMedia({
-                        video: getVideoConstraints(),
-                        audio: false
-                    });
-
-                    previewEl.srcObject = stream;
-                    placeholder.classList.add('hidden');
-
-                    stream.getVideoTracks()[0].onended = () => {
-                        showStatus('Arrêté', 'warning');
-                        stopSharing();
-                    };
-
-                    pc = new RTCPeerConnection({
-                        iceServers: [
-                            { urls: 'stun:stun.l.google.com:19302' }
-                        ]
-                    });
-
-                    stream.getTracks().forEach(track => {
-                        const sender = pc.addTrack(track, stream);
-                        if (track.kind === 'video') {
-                            applyEncodingParams(sender);
-                        }
-                    });
-
-                    pc.onicecandidate = (e) => {
-                        if (e.candidate) {
-                            socket.emit('send-ice-candidate', {
-                                sessionCode,
-                                candidate: e.candidate
-                            });
-                        }
-                    };
-
-                    pc.oniceconnectionstatechange = () => {
-                        const state = pc.iceConnectionState;
-                        if (state === 'connected' || state === 'completed') {
-                            showStatus('Connecté (P2P)', 'connected');
-                        }
-                    };
-
-                    const offer = await pc.createOffer();
-                    await pc.setLocalDescription(offer);
-
-                    socket.emit('create-session', { sessionCode });
-                    socket.emit('send-offer', { sessionCode, offer });
-
-                    codeDisplayEl.textContent = sessionCode;
-                    sessionCard.classList.add('active');
-
-                    showStatus('En attente...', 'warning');
-
-                    shareBtn.style.display = 'none';
-                    activeControls.style.display = 'block';
-                });
-
-                socket.on('receive-answer', async ({ answer }) => {
-                    await pc.setRemoteDescription(answer);
-                    showStatus('En diffusion', 'connected');
-                });
-
-                socket.on('receive-ice-candidate', async ({ candidate }) => {
-                    if (pc && candidate) {
-                        await pc.addIceCandidate(candidate);
-                    }
-                });
-
-                socket.on('receiver-connected', () => {
-                    showStatus('Client connecté', 'connected');
-                });
-
-                socket.on('receiver-disconnected', () => {
-                    showStatus('Client déconnecté', 'warning');
-                });
-
-                socket.on('error', ({ message }) => {
-                    showStatus('Erreur', 'warning');
-                    alert('Erreur: ' + message);
-                });
-
-            } catch (err) {
-                showStatus('Erreur', 'warning');
-                console.error(err);
-            }
-        }
-
-        function stopSharing() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
-            if (pc) {
-                pc.close();
-                pc = null;
-            }
-            if (socket) {
-                socket.disconnect();
-                socket = null;
-            }
-
-            previewEl.srcObject = null;
-            placeholder.classList.remove('hidden');
-            sessionCard.classList.remove('active');
-
-            shareBtn.style.display = 'block';
-            activeControls.style.display = 'none';
-            settingsRow.style.display = 'grid';
-
-            showStatus('Inactif', 'inactive');
-        }
-
-        // Live adjustment functions
-        function applyScaleLive() {
-            if (!pc) return;
-            const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-            if (sender) {
-                applyEncodingParams(sender);
-                console.log('Scale appliqué en live:', scaleSelect.value);
-            }
-        }
-
-        async function applyFpsLive() {
-            if (!stream) return;
-            const videoTrack = stream.getVideoTracks()[0];
-            if (videoTrack) {
-                const fps = parseInt(fpsSelect.value, 10);
-                try {
-                    await videoTrack.applyConstraints({ frameRate: { max: fps } });
-                    console.log('FPS appliqué en live:', fps);
-                } catch (e) {
-                    console.warn('applyConstraints non supporté pour FPS, utilisez "Changer la source":', e);
-                }
-            }
-        }
-
-        // Event listeners
-        shareBtn.addEventListener('click', startSharing);
-        stopBtn.addEventListener('click', stopSharing);
-        changeSourceBtn.addEventListener('click', changeSource);
-
-        // Live settings change listeners
-        scaleSelect.addEventListener('change', applyScaleLive);
-        fpsSelect.addEventListener('change', applyFpsLive);
-
-        // Fullscreen
-        function enterFullscreen() {
-            if (videoWrapper.requestFullscreen) {
-                videoWrapper.requestFullscreen();
-            } else if (videoWrapper.webkitRequestFullscreen) {
-                videoWrapper.webkitRequestFullscreen();
-            }
-        }
-
-        function exitFullscreen() {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            }
-        }
-
-        fullscreenBtn.addEventListener('click', enterFullscreen);
-        exitFullscreenBtn.addEventListener('click', exitFullscreen);
-
-        videoWrapper.addEventListener('dblclick', () => {
-            if (!document.fullscreenElement) {
-                enterFullscreen();
-            } else {
-                exitFullscreen();
-            }
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'f' || e.key === 'F') {
-                if (!document.fullscreenElement) {
-                    enterFullscreen();
-                }
-            }
-        });
-
-        console.log('%c📡 SERVEUR P2P', 'color: #667eea; font-size: 16px; font-weight: bold;');
-    </script>
 </body>
 
 </html>
