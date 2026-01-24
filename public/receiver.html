@@ -499,25 +499,54 @@
         });
 
         // Fullscreen - on met la vidéo en plein écran, pas le container
-        function enterFullscreen() {
-            if (videoWrapper.requestFullscreen) {
-                videoWrapper.requestFullscreen();
-            } else if (videoWrapper.webkitRequestFullscreen) {
-                videoWrapper.webkitRequestFullscreen();
-            } else if (videoWrapper.msRequestFullscreen) {
-                videoWrapper.msRequestFullscreen();
+        async function enterFullscreen() {
+            try {
+                if (videoWrapper.requestFullscreen) {
+                    await videoWrapper.requestFullscreen();
+                } else if (videoWrapper.webkitRequestFullscreen) {
+                    await videoWrapper.webkitRequestFullscreen();
+                } else if (videoWrapper.msRequestFullscreen) {
+                    await videoWrapper.msRequestFullscreen();
+                }
+
+                // Forcer le mode paysage sur mobile
+                if (screen.orientation && screen.orientation.lock) {
+                    try {
+                        await screen.orientation.lock('landscape');
+                    } catch (e) {
+                        console.log('Orientation lock non supporté:', e.message);
+                    }
+                }
+            } catch (err) {
+                console.error('Erreur fullscreen:', err);
             }
         }
 
-        function exitFullscreen() {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
+        async function exitFullscreen() {
+            try {
+                // Libérer le verrouillage d'orientation
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
+                }
+
+                if (document.exitFullscreen) {
+                    await document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    await document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    await document.msExitFullscreen();
+                }
+            } catch (err) {
+                console.error('Erreur exit fullscreen:', err);
             }
         }
+
+        // Libérer l'orientation quand on quitte le fullscreen (via ESC par exemple)
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+            }
+        });
 
         fullscreenBtn.addEventListener('click', enterFullscreen);
         exitFullscreenBtn.addEventListener('click', exitFullscreen);
