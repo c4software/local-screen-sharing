@@ -699,3 +699,17 @@ body.home {
         aspect-ratio: auto;
     }
 }
+/* Receiver Overlay Controls */
+.video-container.receiver-mode {
+    position: relative;
+}
+
+.video-container.receiver-mode .video-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+    padding: 20px;
+}
