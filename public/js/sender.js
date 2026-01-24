@@ -167,15 +167,6 @@ Alpine.data('sender', () => ({
         if (this.webrtc) {
             this.webrtc.applyEncodingParams(parseFloat(this.scale));
         }
-    },
-
-    toggleFullscreen() {
-        const wrapper = this.$refs.videoWrapper;
-        if (!document.fullscreenElement) {
-            wrapper.requestFullscreen().catch(e => console.log(e));
-        } else {
-            document.exitFullscreen();
-        }
     }
 }));
 
