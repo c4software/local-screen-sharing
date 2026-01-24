@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client - Visualisation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .player-container {
+            width: 100%;
+            max-width: 1400px;
+            background: #1a1a1a;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            aspect-ratio: 16/9;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #666;
+        }
+
+        .placeholder.hidden {
+            display: none;
+        }
+
+        .placeholder-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            background: #1a1a1a;
+            padding: 25px 30px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        .back-btn {
+            background: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #333;
+            color: #fff;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #666;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-indicator.connected {
+            background: #10b981;
+        }
+
+        .status-indicator.connecting {
+            background: #f59e0b;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .status-text {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .status-text.connected {
+            color: #10b981;
+        }
+
+        .status-text.connecting {
+            color: #f59e0b;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            flex: 1;
+            padding: 14px 18px;
+            background: #2a2a2a;
+            border: 2px solid #333;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #333;
+        }
+
+        input::placeholder {
+            color: #666;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .stat-label {
+            color: #999;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="player-container">
+        <div class="video-wrapper">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div id="placeholder" class="placeholder">
+                <div class="placeholder-icon">📺</div>
+                <div>En attente de connexion...</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="header">
+                <button class="back-btn" onclick="window.location.href='/'">←</button>
+                <div class="status-bar">
+                    <div id="statusIndicator" class="status-indicator"></div>
+                    <div id="statusText" class="status-text">Déconnecté</div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <input
+                       type="text"
+                       id="codeInput"
+                       placeholder="Entrez le code de session (ex: A1B2)"
+                       maxlength="4" />
+                <button id="connectBtn" class="btn btn-primary">🔗 Connecter</button>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">État de connexion</div>
+                    <div class="stat-value" id="connState">Déconnecté</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">État ICE</div>
+                    <div class="stat-value" id="iceState">Nouveau</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Type de connexion</div>
+                    <div class="stat-value" id="candidateType">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Débit vidéo</div>
+                    <div class="stat-value" id="bitrate">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let pc = null;
+        let socket = null;
+
+        const remoteVideo = document.getElementById('remoteVideo');
+        const placeholder = document.getElementById('placeholder');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const codeInput = document.getElementById('codeInput');
+        const connectBtn = document.getElementById('connectBtn');
+
+        function updateStatus(state, text) {
+            statusIndicator.className = `status-indicator ${state}`;
+            statusText.className = `status-text ${state}`;
+            statusText.textContent = text;
+        }
+
+        function updateStats() {
+            if (!pc) return;
+
+            pc.getStats().then(stats => {
+                stats.forEach(report => {
+                    if (report.type === 'inbound-rtp' && report.mediaType === 'video') {
+                        const kbps = Math.round(report.bytesReceived * 8 / 1000);
+                        document.getElementById('bitrate').textContent = kbps + ' kb/s';
+                    }
+                });
+            });
+        }
+
+        async function connect() {
+            const sessionCode = codeInput.value.trim().toUpperCase();
+            if (sessionCode.length !== 4) {
+                alert('Le code de session doit contenir 4 caractères');
+                return;
+            }
+
+            try {
+                updateStatus('connecting', 'Connexion en cours...');
+
+                socket = io();
+
+                socket.on('connect', () => {
+                    console.log('Connecté au serveur de signalisation');
+
+                    pc = new RTCPeerConnection({
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' }
+                        ]
+                    });
+
+                    pc.ontrack = (event) => {
+                        console.log('Track reçu:', event.streams[0]);
+                        remoteVideo.srcObject = event.streams[0];
+                        placeholder.classList.add('hidden');
+                        updateStatus('connected', 'Connecté - Flux P2P actif');
+
+                        // Mettre à jour les stats
+                        setInterval(updateStats, 1000);
+                    };
+
+                    pc.onicecandidate = (e) => {
+                        if (e.candidate) {
+                            console.log('ICE Candidate:', e.candidate.type);
+
+                            if (e.candidate.type) {
+                                document.getElementById('candidateType').textContent = e.candidate.type;
+                            }
+
+                            socket.emit('send-ice-candidate', {
+                                sessionCode,
+                                candidate: e.candidate
+                            });
+                        }
+                    };
+
+                    pc.oniceconnectionstatechange = () => {
+                        const state = pc.iceConnectionState;
+                        document.getElementById('iceState').textContent = state;
+
+                        if (state === 'connected' || state === 'completed') {
+                            updateStatus('connected', '✅ Connexion P2P établie');
+                        } else if (state === 'disconnected') {
+                            updateStatus('', 'Déconnecté');
+                        } else if (state === 'failed') {
+                            updateStatus('', 'Échec de connexion');
+                        }
+                    };
+
+                    pc.onconnectionstatechange = () => {
+                        const state = pc.connectionState;
+                        document.getElementById('connState').textContent = state;
+
+                        if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+                            updateStatus('', 'Déconnecté');
+                            placeholder.classList.remove('hidden');
+                        }
+                    };
+
+                    socket.emit('join-session', { sessionCode });
+                });
+
+                socket.on('receive-offer', async ({ offer }) => {
+                    console.log('Offre SDP reçue');
+                    await pc.setRemoteDescription(offer);
+
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+
+                    socket.emit('send-answer', { sessionCode, answer });
+                });
+
+                socket.on('receive-ice-candidate', async ({ candidate }) => {
+                    if (pc && candidate) {
+                        await pc.addIceCandidate(candidate);
+                    }
+                });
+
+                socket.on('session-joined', () => {
+                    console.log('Session rejointe avec succès');
+                    updateStatus('connecting', 'En attente du flux...');
+                });
+
+                socket.on('sender-disconnected', () => {
+                    updateStatus('', 'Le serveur s\'est déconnecté');
+                    placeholder.classList.remove('hidden');
+                });
+
+                socket.on('error', ({ message }) => {
+                    alert('Erreur: ' + message);
+                    updateStatus('', 'Erreur de connexion');
+                });
+
+            } catch (err) {
+                console.error('Erreur:', err);
+                updateStatus('', 'Erreur de connexion');
+                alert('Erreur: ' + err.message);
+            }
+        }
+
+        connectBtn.addEventListener('click', connect);
+        codeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') connect();
+        });
+
+        console.log('%c✅ CLIENT P2P', 'color: green; font-size: 16px; font-weight: bold;');
+        console.log('Entrez le code de session pour vous connecter');
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serveur - Partage d'écran</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .back-btn {
+            background: #f3f4f6;
+            border: none;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #e5e7eb;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+            margin-left: 55px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6366f1;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #4f46e5;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #dc2626;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.active {
+            display: block;
+        }
+
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .session-code {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .session-code.active {
+            display: block;
+        }
+
+        .code-display {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            letter-spacing: 8px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .code-label {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .preview {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            background: #000;
+            display: none;
+        }
+
+        .preview.active {
+            display: block;
+        }
+
+        .stats {
+            font-size: 12px;
+            color: #666;
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .stats.active {
+            display: block;
+        }
+
+        .stats-item {
+            margin: 5px 0;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .button-group .btn {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="back-btn" onclick="window.location.href='/'">←</button>
+            <h1>📡 Serveur</h1>
+        </div>
+        <p class="subtitle">Partagez votre écran en peer-to-peer</p>
+
+        <div id="status" class="status"></div>
+
+        <div id="sessionCode" class="session-code">
+            <div class="code-display" id="codeDisplay">----</div>
+            <div class="code-label">Code de session à partager avec le client</div>
+        </div>
+
+        <video id="preview" class="preview" autoplay muted playsinline></video>
+
+        <button id="shareBtn" class="btn btn-primary">🖥️ Partager mon écran</button>
+
+        <div id="activeControls" style="display: none;">
+            <div class="button-group">
+                <button id="changeSourceBtn" class="btn btn-secondary">🔄 Changer la source</button>
+                <button id="stopBtn" class="btn btn-danger">⏹️ Arrêter</button>
+            </div>
+        </div>
+
+        <div id="stats" class="stats"></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let pc = null;
+        let stream = null;
+        let socket = null;
+        const sessionCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+        const shareBtn = document.getElementById('shareBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const changeSourceBtn = document.getElementById('changeSourceBtn');
+        const activeControls = document.getElementById('activeControls');
+        const statusEl = document.getElementById('status');
+        const sessionCodeEl = document.getElementById('sessionCode');
+        const codeDisplayEl = document.getElementById('codeDisplay');
+        const previewEl = document.getElementById('preview');
+        const statsEl = document.getElementById('stats');
+
+        function showStatus(message, type = 'info') {
+            statusEl.textContent = message;
+            statusEl.className = `status active ${type}`;
+        }
+
+        function updateStats() {
+            if (!pc) return;
+
+            pc.getStats().then(stats => {
+                let statsHTML = '<div class="stats-item"><strong>Statistiques P2P:</strong></div>';
+
+                stats.forEach(report => {
+                    if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                        statsHTML += `<div class="stats-item">✅ Connexion P2P établie</div>`;
+                    }
+                    if (report.type === 'local-candidate') {
+                        statsHTML += `<div class="stats-item">📍 Type: ${report.candidateType}</div>`;
+                    }
+                    if (report.type === 'outbound-rtp' && report.mediaType === 'video') {
+                        const kbps = Math.round(report.bytesSent * 8 / 1000);
+                        statsHTML += `<div class="stats-item">📊 Débit: ${kbps} kb/s</div>`;
+                    }
+                });
+
+                statsEl.innerHTML = statsHTML;
+                statsEl.classList.add('active');
+            });
+        }
+
+        async function changeSource() {
+            try {
+                showStatus('Sélectionnez une nouvelle source...', 'info');
+
+                // Arrêter l'ancien flux
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+
+                // Capturer une nouvelle source
+                stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: true,
+                    audio: false
+                });
+
+                // Mettre à jour le preview
+                previewEl.srcObject = stream;
+
+                // Remplacer la piste vidéo dans la connexion P2P
+                if (pc) {
+                    const videoTrack = stream.getVideoTracks()[0];
+                    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+
+                    if (sender) {
+                        await sender.replaceTrack(videoTrack);
+                        showStatus('✅ Source changée avec succès', 'success');
+                    }
+                }
+
+                // Gérer l'arrêt du partage par l'utilisateur
+                stream.getVideoTracks()[0].onended = () => {
+                    showStatus('⚠️ Partage d\'écran arrêté par l\'utilisateur', 'warning');
+                    stopSharing();
+                };
+
+            } catch (err) {
+                showStatus('❌ Erreur lors du changement de source: ' + err.message, 'warning');
+                console.error(err);
+            }
+        }
+
+        async function startSharing() {
+            try {
+                showStatus('Connexion au serveur de signalisation...', 'info');
+
+                socket = io();
+
+                socket.on('connect', async () => {
+                    showStatus('Demande d\'accès à l\'écran...', 'info');
+
+                    // Capture d'écran
+                    stream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: false
+                    });
+
+                    previewEl.srcObject = stream;
+                    previewEl.classList.add('active');
+
+                    // Gérer l'arrêt du partage par l'utilisateur (bouton Chrome)
+                    stream.getVideoTracks()[0].onended = () => {
+                        showStatus('⚠️ Partage d\'écran arrêté par l\'utilisateur', 'warning');
+                        stopSharing();
+                    };
+
+                    // Configuration WebRTC pour P2P
+                    pc = new RTCPeerConnection({
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' }
+                        ]
+                    });
+
+                    // Ajouter la piste vidéo
+                    stream.getTracks().forEach(track => {
+                        pc.addTrack(track, stream);
+                    });
+
+                    pc.onicecandidate = (e) => {
+                        if (e.candidate) {
+                            socket.emit('send-ice-candidate', {
+                                sessionCode,
+                                candidate: e.candidate
+                            });
+                        }
+                    };
+
+                    pc.oniceconnectionstatechange = () => {
+                        const state = pc.iceConnectionState;
+                        showStatus(`État ICE: ${state}`,
+                            state === 'connected' || state === 'completed' ? 'success' : 'info');
+
+                        if (state === 'connected' || state === 'completed') {
+                            updateStats();
+                            setInterval(updateStats, 2000);
+                        }
+                    };
+
+                    pc.onconnectionstatechange = () => {
+                        showStatus(`État: ${pc.connectionState}`,
+                            pc.connectionState === 'connected' ? 'success' : 'info');
+                    };
+
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+
+                    socket.emit('create-session', { sessionCode });
+                    socket.emit('send-offer', { sessionCode, offer });
+
+                    codeDisplayEl.textContent = sessionCode;
+                    sessionCodeEl.classList.add('active');
+
+                    showStatus('✅ Session créée. En attente de connexion...', 'success');
+
+                    shareBtn.style.display = 'none';
+                    activeControls.style.display = 'block';
+                });
+
+                socket.on('receive-answer', async ({ answer }) => {
+                    await pc.setRemoteDescription(answer);
+                    showStatus('✅ Client connecté - Partage actif', 'success');
+                });
+
+                socket.on('receive-ice-candidate', async ({ candidate }) => {
+                    if (pc && candidate) {
+                        await pc.addIceCandidate(candidate);
+                    }
+                });
+
+                socket.on('receiver-connected', () => {
+                    showStatus('📺 Un client s\'est connecté', 'success');
+                });
+
+                socket.on('receiver-disconnected', () => {
+                    showStatus('📺 Le client s\'est déconnecté', 'warning');
+                });
+
+                socket.on('error', ({ message }) => {
+                    showStatus('❌ Erreur: ' + message, 'warning');
+                });
+
+            } catch (err) {
+                showStatus('❌ Erreur: ' + err.message, 'warning');
+                console.error(err);
+            }
+        }
+
+        function stopSharing() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            if (pc) {
+                pc.close();
+            }
+            if (socket) {
+                socket.disconnect();
+            }
+
+            previewEl.srcObject = null;
+            previewEl.classList.remove('active');
+            sessionCodeEl.classList.remove('active');
+            statsEl.classList.remove('active');
+
+            shareBtn.style.display = 'block';
+            activeControls.style.display = 'none';
+
+            showStatus('Partage arrêté', 'info');
+        }
+
+        shareBtn.addEventListener('click', startSharing);
+        stopBtn.addEventListener('click', stopSharing);
+        changeSourceBtn.addEventListener('click', changeSource);
+
+        console.log('%c✅ SERVEUR P2P', 'color: green; font-size: 16px; font-weight: bold;');
+        console.log('Partagez le code de session avec vos clients');
+    </script>
+</body>
+
+</html>
