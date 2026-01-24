@@ -264,6 +264,52 @@
             padding: 24px;
         }
 
+        /* Settings Row */
+        .settings-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .setting-label {
+            color: #94a3b8;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .setting-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #f1f5f9;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .setting-select:hover {
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+
+        .setting-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .setting-select option {
+            background: #1e293b;
+            color: #f1f5f9;
+        }
+
         .btn {
             width: 100%;
             padding: 18px;
@@ -404,6 +450,26 @@
         </div>
 
         <div class="action-panel">
+            <div class="settings-row" id="settingsRow">
+                <div class="setting-group">
+                    <label class="setting-label">Images/sec (FPS)</label>
+                    <select id="fpsSelect" class="setting-select">
+                        <option value="60">60 FPS (Fluide)</option>
+                        <option value="30" selected>30 FPS (Standard)</option>
+                        <option value="15">15 FPS (Économique)</option>
+                        <option value="5">5 FPS (Diaporama)</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">Qualité (Résolution)</label>
+                    <select id="scaleSelect" class="setting-select">
+                        <option value="1">100% (Original)</option>
+                        <option value="1.33">75%</option>
+                        <option value="2" selected>50% (Recommandé)</option>
+                        <option value="4">25% (Léger)</option>
+                    </select>
+                </div>
+            </div>
             <button id="shareBtn" class="btn btn-primary">🖥️ Partager mon écran</button>
 
             <div id="activeControls">
@@ -435,10 +501,30 @@
         const videoWrapper = document.getElementById('videoWrapper');
         const fullscreenBtn = document.getElementById('fullscreenBtn');
         const exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
+        const fpsSelect = document.getElementById('fpsSelect');
+        const scaleSelect = document.getElementById('scaleSelect');
+        const settingsRow = document.getElementById('settingsRow');
 
         function showStatus(message, type = 'inactive') {
             statusBadge.className = `status-badge ${type}`;
             statusText.textContent = message;
+        }
+
+        function getVideoConstraints() {
+            const fps = parseInt(fpsSelect.value, 10);
+            return {
+                frameRate: { max: fps }
+            };
+        }
+
+        function applyEncodingParams(sender) {
+            const scale = parseFloat(scaleSelect.value);
+            const params = sender.getParameters();
+            if (!params.encodings || params.encodings.length === 0) {
+                params.encodings = [{}];
+            }
+            params.encodings[0].scaleResolutionDownBy = scale;
+            sender.setParameters(params).catch(e => console.error('setParameters error:', e));
         }
 
         async function changeSource() {
@@ -450,7 +536,7 @@
                 }
 
                 stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true,
+                    video: getVideoConstraints(),
                     audio: false
                 });
 
@@ -463,6 +549,7 @@
 
                     if (sender) {
                         await sender.replaceTrack(videoTrack);
+                        applyEncodingParams(sender);
                         showStatus('En diffusion', 'connected');
                     }
                 }
@@ -488,7 +575,7 @@
                     showStatus('Capture...', 'warning');
 
                     stream = await navigator.mediaDevices.getDisplayMedia({
-                        video: true,
+                        video: getVideoConstraints(),
                         audio: false
                     });
 
@@ -507,7 +594,10 @@
                     });
 
                     stream.getTracks().forEach(track => {
-                        pc.addTrack(track, stream);
+                        const sender = pc.addTrack(track, stream);
+                        if (track.kind === 'video') {
+                            applyEncodingParams(sender);
+                        }
                     });
 
                     pc.onicecandidate = (e) => {
@@ -591,14 +681,43 @@
 
             shareBtn.style.display = 'block';
             activeControls.style.display = 'none';
+            settingsRow.style.display = 'grid';
 
             showStatus('Inactif', 'inactive');
+        }
+
+        // Live adjustment functions
+        function applyScaleLive() {
+            if (!pc) return;
+            const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+            if (sender) {
+                applyEncodingParams(sender);
+                console.log('Scale appliqué en live:', scaleSelect.value);
+            }
+        }
+
+        async function applyFpsLive() {
+            if (!stream) return;
+            const videoTrack = stream.getVideoTracks()[0];
+            if (videoTrack) {
+                const fps = parseInt(fpsSelect.value, 10);
+                try {
+                    await videoTrack.applyConstraints({ frameRate: { max: fps } });
+                    console.log('FPS appliqué en live:', fps);
+                } catch (e) {
+                    console.warn('applyConstraints non supporté pour FPS, utilisez "Changer la source":', e);
+                }
+            }
         }
 
         // Event listeners
         shareBtn.addEventListener('click', startSharing);
         stopBtn.addEventListener('click', stopSharing);
         changeSourceBtn.addEventListener('click', changeSource);
+
+        // Live settings change listeners
+        scaleSelect.addEventListener('change', applyScaleLive);
+        fpsSelect.addEventListener('change', applyFpsLive);
 
         // Fullscreen
         function enterFullscreen() {
