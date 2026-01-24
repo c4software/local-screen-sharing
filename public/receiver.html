@@ -268,10 +268,7 @@
                     <div class="stat-label">Type de connexion</div>
                     <div class="stat-value" id="candidateType">-</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Débit vidéo</div>
-                    <div class="stat-value" id="bitrate">-</div>
-                </div>
+
             </div>
         </div>
     </div>
@@ -280,6 +277,7 @@
     <script>
         let pc = null;
         let socket = null;
+        let statsInterval = null;
 
         const remoteVideo = document.getElementById('remoteVideo');
         const placeholder = document.getElementById('placeholder');
@@ -295,16 +293,7 @@
         }
 
         function updateStats() {
-            if (!pc) return;
-
-            pc.getStats().then(stats => {
-                stats.forEach(report => {
-                    if (report.type === 'inbound-rtp' && report.mediaType === 'video') {
-                        const kbps = Math.round(report.bytesReceived * 8 / 1000);
-                        document.getElementById('bitrate').textContent = kbps + ' kb/s';
-                    }
-                });
-            });
+            // Stats disponibles via les indicateurs visuels
         }
 
         async function connect() {
@@ -334,8 +323,10 @@
                         placeholder.classList.add('hidden');
                         updateStatus('connected', 'Connecté - Flux P2P actif');
 
-                        // Mettre à jour les stats
-                        setInterval(updateStats, 1000);
+                        // Mettre à jour les stats (avec gestion de l'intervalle)
+                        if (!statsInterval) {
+                            statsInterval = setInterval(updateStats, 1000);
+                        }
                     };
 
                     pc.onicecandidate = (e) => {
@@ -390,8 +381,12 @@
                 });
 
                 socket.on('receive-ice-candidate', async ({ candidate }) => {
-                    if (pc && candidate) {
-                        await pc.addIceCandidate(candidate);
+                    try {
+                        if (pc && candidate) {
+                            await pc.addIceCandidate(candidate);
+                        }
+                    } catch (err) {
+                        console.warn('Erreur ajout ICE candidate:', err);
                     }
                 });
 
@@ -403,6 +398,7 @@
                 socket.on('sender-disconnected', () => {
                     updateStatus('', 'Le serveur s\'est déconnecté');
                     placeholder.classList.remove('hidden');
+                    cleanup();
                 });
 
                 socket.on('error', ({ message }) => {
@@ -415,6 +411,22 @@
                 updateStatus('', 'Erreur de connexion');
                 alert('Erreur: ' + err.message);
             }
+        }
+
+        function cleanup() {
+            if (statsInterval) {
+                clearInterval(statsInterval);
+                statsInterval = null;
+            }
+            if (pc) {
+                pc.close();
+                pc = null;
+            }
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+
         }
 
         connectBtn.addEventListener('click', connect);

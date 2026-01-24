@@ -36,11 +36,20 @@ app.get('/health', (req, res) => {
 // Stockage des sessions actives
 const sessions = new Map();
 
+// Validation du code de session (4 caractères alphanumériques)
+function isValidSessionCode(code) {
+    return typeof code === 'string' && /^[A-Z0-9]{4}$/i.test(code);
+}
+
 io.on('connection', (socket) => {
     console.log(`[${socket.id}] Client connecté`);
 
     // Émetteur : créer une session
     socket.on('create-session', ({ sessionCode }) => {
+        if (!isValidSessionCode(sessionCode)) {
+            socket.emit('error', { message: 'Code de session invalide (4 caractères alphanumériques requis)' });
+            return;
+        }
         console.log(`[${socket.id}] Création session: ${sessionCode}`);
 
         sessions.set(sessionCode, {
@@ -88,6 +97,10 @@ io.on('connection', (socket) => {
 
     // Récepteur : rejoindre une session
     socket.on('join-session', ({ sessionCode }) => {
+        if (!isValidSessionCode(sessionCode)) {
+            socket.emit('error', { message: 'Code de session invalide (4 caractères alphanumériques requis)' });
+            return;
+        }
         console.log(`[${socket.id}] Tentative de connexion à session: ${sessionCode}`);
 
         const session = sessions.get(sessionCode);

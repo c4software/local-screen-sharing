@@ -241,6 +241,7 @@
         let pc = null;
         let stream = null;
         let socket = null;
+        let statsInterval = null;
         const sessionCode = Math.random().toString(36).substring(2, 6).toUpperCase();
 
         const shareBtn = document.getElementById('shareBtn');
@@ -270,10 +271,6 @@
                     }
                     if (report.type === 'local-candidate') {
                         statsHTML += `<div class="stats-item">📍 Type: ${report.candidateType}</div>`;
-                    }
-                    if (report.type === 'outbound-rtp' && report.mediaType === 'video') {
-                        const kbps = Math.round(report.bytesSent * 8 / 1000);
-                        statsHTML += `<div class="stats-item">📊 Débit: ${kbps} kb/s</div>`;
                     }
                 });
 
@@ -375,7 +372,9 @@
 
                         if (state === 'connected' || state === 'completed') {
                             updateStats();
-                            setInterval(updateStats, 2000);
+                            if (!statsInterval) {
+                                statsInterval = setInterval(updateStats, 2000);
+                            }
                         }
                     };
 
@@ -429,14 +428,23 @@
         }
 
         function stopSharing() {
+            // Nettoyer l'intervalle de stats
+            if (statsInterval) {
+                clearInterval(statsInterval);
+                statsInterval = null;
+            }
+
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
+                stream = null;
             }
             if (pc) {
                 pc.close();
+                pc = null;
             }
             if (socket) {
                 socket.disconnect();
+                socket = null;
             }
 
             previewEl.srcObject = null;
