@@ -1,8 +1,12 @@
-// server.js - Serveur Node.js avec Express + WebSocket
-const express = require('express');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
+// server.ts - Serveur Node.js avec Express + WebSocket
+import express, { type Request, type Response } from 'express';
+import { createServer } from 'http';
+import { Server, type Socket } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
@@ -13,35 +17,83 @@ const io = new Server(httpServer, {
     }
 });
 
+// Types WebRTC (définis manuellement car absents côté serveur)
+interface RTCSessionDescriptionInit {
+    type: 'offer' | 'answer' | 'pranswer' | 'rollback';
+    sdp?: string;
+}
+
+interface RTCIceCandidateInit {
+    candidate?: string;
+    sdpMLineIndex?: number | null;
+    sdpMid?: string | null;
+    usernameFragment?: string | null;
+}
+
+// Types pour les événements Socket.io
+interface ServerToClientEvents {
+    'session-created': (data: { sessionCode: string }) => void;
+    'session-joined': (data: { sessionCode: string }) => void;
+    'receive-offer': (data: { offer: RTCSessionDescriptionInit }) => void;
+    'receive-answer': (data: { answer: RTCSessionDescriptionInit }) => void;
+    'receive-ice-candidate': (data: { candidate: RTCIceCandidateInit }) => void;
+    'receiver-connected': () => void;
+    'receiver-disconnected': () => void;
+    'sender-disconnected': () => void;
+    'error': (data: { message: string }) => void;
+}
+
+interface ClientToServerEvents {
+    'create-session': (data: { sessionCode: string }) => void;
+    'join-session': (data: { sessionCode: string }) => void;
+    'send-offer': (data: { sessionCode: string; offer: RTCSessionDescriptionInit }) => void;
+    'send-answer': (data: { sessionCode: string; answer: RTCSessionDescriptionInit }) => void;
+    'send-ice-candidate': (data: { sessionCode: string; candidate: RTCIceCandidateInit }) => void;
+}
+
+type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
+
+// Types pour les sessions
+interface Session {
+    senderId: string;
+    senderOffer: RTCSessionDescriptionInit | null;
+    senderCandidates: RTCIceCandidateInit[];
+    receiverId: string | null;
+    receiverAnswer: RTCSessionDescriptionInit | null;
+    receiverCandidates: RTCIceCandidateInit[];
+}
+
+type SessionCode = string;
+
 // Servir les fichiers statiques
 app.use(express.static('public'));
 
 // Routes
-app.get('/', (req, res) => {
+app.get('/', (_req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/sender', (req, res) => {
+app.get('/sender', (_req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, 'public', 'sender.html'));
 });
 
-app.get('/receiver', (req, res) => {
+app.get('/receiver', (_req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, 'public', 'receiver.html'));
 });
 
-app.get('/health', (req, res) => {
+app.get('/health', (_req: Request, res: Response) => {
     res.json({ status: 'ok', sessions: sessions.size });
 });
 
 // Stockage des sessions actives
-const sessions = new Map();
+const sessions = new Map<SessionCode, Session>();
 
 // Validation du code de session (4 caractères alphanumériques)
-function isValidSessionCode(code) {
+function isValidSessionCode(code: unknown): code is SessionCode {
     return typeof code === 'string' && /^[A-Z0-9]{4}$/i.test(code);
 }
 
-io.on('connection', (socket) => {
+io.on('connection', (socket: TypedSocket) => {
     console.log(`[${socket.id}] Client connecté`);
 
     // Émetteur : créer une session
@@ -164,7 +216,7 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-httpServer.listen(PORT, '0.0.0.0', () => {
+httpServer.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║  🚀 Serveur WebRTC P2P démarré                            ║

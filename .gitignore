@@ -1,2 +1,6 @@
 node_modules
 nohup.out
+
+# TypeScript
+dist/
+*.tsbuildinfo
