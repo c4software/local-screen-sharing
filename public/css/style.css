@@ -672,3 +672,25 @@ body.home {
         gap: 20px;
     }
 }
+/* Receiver Mode Layout */
+.video-container.receiver-mode {
+    margin: 0 auto;
+    width: 90%;
+    max-width: 1200px;
+    height: calc(100vh - 140px); /* Hauteur viewport moins header (plus de marge) */
+    max-height: 800px;
+    margin-bottom: 20px;
+}
+
+.video-container.receiver-mode .video-wrapper {
+    height: 100%;
+}
+
+@media (max-width: 768px) {
+    .video-container.receiver-mode {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16/9;
+        max-height: 50vh;
+    }
+}
