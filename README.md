@@ -22,6 +22,9 @@ Système de partage d'écran WebRTC avec **connexion peer-to-peer directe**. Sim
 - ✅ **Homepage** : Choix entre Serveur (partager) ou Client (visionner)
 - ✅ **Changement de source** : Re-sélectionner écran/fenêtre/onglet pendant le partage
 - ✅ **Partage d'écran P2P** : Flux vidéo direct entre les clients
+- ✅ **Contrôle FPS et Qualité** : Ajustement dynamique des performances (5-60 FPS, 25%-100% résolution)
+- ✅ **Mode plein écran** : Visualisation immersive avec raccourcis clavier (F) et double-clic
+- ✅ **Interface moderne** : Design premium avec animations fluides et dark mode
 - ✅ **Pas de NGINX** : Serveur Node.js standalone
 - 📊 **Statistiques temps réel** : Type de connexion, débit, état ICE
 - 🔒 **DTLS-SRTP** : Chiffrement automatique du flux
@@ -30,16 +33,18 @@ Système de partage d'écran WebRTC avec **connexion peer-to-peer directe**. Sim
 ## 📁 Structure des fichiers
 
 ```
-webrtc-p2p/
-├── server.js              # Serveur Node.js + Socket.IO
+local-screen-sharing/
+├── server.ts              # Serveur Node.js + Socket.IO (TypeScript)
 ├── package.json           # Dépendances
-├── Dockerfile            # Image Docker optimisée
-├── docker-compose.yml    # Configuration Docker
-├── .dockerignore         # Optimisation build
+├── tsconfig.json          # Configuration TypeScript
+├── Dockerfile             # Image Docker optimisée
+├── docker-compose.yml     # Configuration Docker
+├── .dockerignore          # Optimisation build
+├── AGENTS.md              # Documentation technique pour agents IA
 └── public/
-    ├── index.html        # Homepage (choix serveur/client)
-    ├── sender.html       # Page serveur (partage)
-    └── receiver.html     # Page client (visualisation)
+    ├── index.html         # Homepage (choix serveur/client)
+    ├── sender.html        # Page serveur (partage avec contrôles FPS/Scale)
+    └── receiver.html      # Page client (visualisation plein écran)
 ```
 
 ## 🔧 Installation locale (développement)
@@ -53,19 +58,21 @@ webrtc-p2p/
 
 ```bash
 # 1. Créer la structure
-mkdir -p webrtc-p2p/public
-cd webrtc-p2p
+mkdir -p local-screen-sharing/public
+cd local-screen-sharing
 
-# 2. Créer les fichiers (copier le contenu des artifacts)
+# 2. Créer les fichiers (copier le contenu du projet)
 
 # 3. Installer les dépendances
 npm install
 
-# 4. Démarrer le serveur
+# 4. Démarrer le serveur (TypeScript compilé automatiquement)
 npm start
 ```
 
 Le serveur démarre sur http://localhost:3000
+
+> **Note** : Le projet utilise TypeScript avec compilation automatique via `ts-node`
 
 ## 🐳 Déploiement Docker (Production)
 
@@ -73,10 +80,10 @@ Le serveur démarre sur http://localhost:3000
 
 ```bash
 # Build de l'image
-docker build -t webrtc-p2p .
+docker build -t local-screen-sharing .
 
 # Lancement du conteneur
-docker run -d -p 3000:3000 --name webrtc-signaling webrtc-p2p
+docker run -d -p 3000:3000 --name screen-sharing local-screen-sharing
 ```
 
 ### Option 2 : Docker Compose (recommandé)
@@ -140,14 +147,19 @@ Vous avez deux options :
 ### 2. Mode Serveur (partager)
 
 1. Cliquez sur **Serveur**
-2. Cliquez sur **Partager mon écran**
-3. Sélectionnez l'écran, fenêtre ou onglet à partager
-4. Notez le **code à 4 caractères** (ex: `A1B2`)
-5. Partagez ce code avec vos clients
+2. **(Optionnel)** Ajustez les paramètres de performance :
+   - **FPS** : Choisissez entre 5-60 images/seconde selon vos besoins
+   - **Qualité** : Sélectionnez la résolution (25%-100%)
+3. Cliquez sur **Partager mon écran**
+4. Sélectionnez l'écran, fenêtre ou onglet à partager
+5. Notez le **code à 4 caractères** (ex: `A1B2`)
+6. Partagez ce code avec vos clients
 
 **Pendant le partage :**
 
+- 🎛️ **Ajuster FPS/Qualité** : Modifiez en temps réel sans déconnexion
 - 🔄 **Changer la source** : Re-sélectionner écran/fenêtre/onglet
+- ⛶ **Plein écran** : Bouton, touche F, ou double-clic
 - ⏹️ **Arrêter** : Stopper le partage
 
 ### 3. Mode Client (visionner)
@@ -168,6 +180,31 @@ Le bouton **"Changer la source"** permet de :
 - Changer d'écran/fenêtre/onglet sans déconnecter le client
 
 Cette fonctionnalité utilise `replaceTrack()` de WebRTC pour remplacer la piste vidéo sans recréer la connexion P2P.
+
+### Contrôle dynamique de la qualité
+
+**Paramètres FPS (Images par seconde)** :
+- 60 FPS : Fluide, idéal pour vidéos et animations
+- 30 FPS : Standard, balance performance/qualité
+- 15 FPS : Économique, pour documents et présentations
+- 5 FPS : Diaporama, consommation minimale
+
+**Paramètres de Résolution** :
+- 100% : Qualité originale maximale
+- 75% : Haute qualité avec réduction de bande passante
+- 50% : Recommandé, excellent compromis
+- 25% : Léger, pour connexions limitées
+
+Les paramètres peuvent être ajustés **en temps réel** pendant le partage sans interruption de la connexion.
+
+### Mode plein écran
+
+Plusieurs méthodes pour activer le plein écran :
+- Bouton **⛶** dans les contrôles vidéo
+- Double-clic sur la vidéo
+- Touche **F** du clavier
+
+En mode plein écran, les contrôles s'affichent automatiquement au survol.
 
 ## 📊 Monitoring
 
@@ -286,6 +323,30 @@ const videoTrack = stream.getVideoTracks()[0];
 const sender = pc.getSenders().find((s) => s.track.kind === "video");
 await sender.replaceTrack(videoTrack);
 ```
+
+### Optimisation de la performance
+
+**Contrôle FPS dynamique** :
+```javascript
+// Capture avec FPS configurable
+stream = await navigator.mediaDevices.getDisplayMedia({
+    video: { frameRate: { max: fps } },
+    audio: false
+});
+
+// Ajustement en temps réel
+await videoTrack.applyConstraints({ frameRate: { max: fps } });
+```
+
+**Réduction de résolution (Scale)** :
+```javascript
+// Appliqué via encodingParameters
+const params = sender.getParameters();
+params.encodings[0].scaleResolutionDownBy = scale; // 1, 1.33, 2, ou 4
+await sender.setParameters(params);
+```
+
+Ces optimisations permettent d'adapter la consommation de bande passante en fonction de la qualité réseau.
 
 ## 📚 Ressources
 
