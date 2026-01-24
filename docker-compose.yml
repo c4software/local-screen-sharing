@@ -1,10 +1,10 @@
 services:
   local-screen-sharing:
     build: .
-    container_name: webrtc-p2p-signaling
+    container_name: local-screen-sharing
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    #ports:
+    #  - "3000:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
