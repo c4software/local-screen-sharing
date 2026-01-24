@@ -94,7 +94,6 @@ function isValidSessionCode(code: unknown): code is SessionCode {
 }
 
 io.on('connection', (socket: TypedSocket) => {
-    console.log(`[${socket.id}] Client connecté`);
 
     // Émetteur : créer une session
     socket.on('create-session', ({ sessionCode }) => {
@@ -119,7 +118,6 @@ io.on('connection', (socket: TypedSocket) => {
 
     // Émetteur : envoyer l'offre SDP
     socket.on('send-offer', ({ sessionCode, offer }) => {
-        console.log(`[${socket.id}] Offre SDP pour session ${sessionCode}`);
 
         const session = sessions.get(sessionCode);
         if (session && session.senderId === socket.id) {
@@ -153,7 +151,7 @@ io.on('connection', (socket: TypedSocket) => {
             socket.emit('error', { message: 'Code de session invalide (4 caractères alphanumériques requis)' });
             return;
         }
-        console.log(`[${socket.id}] Tentative de connexion à session: ${sessionCode}`);
+
 
         const session = sessions.get(sessionCode);
         if (!session) {
@@ -177,12 +175,11 @@ io.on('connection', (socket: TypedSocket) => {
         // Notifier l'émetteur qu'un récepteur s'est connecté
         io.to(session.senderId).emit('receiver-connected');
 
-        console.log(`[${socket.id}] Connecté à session ${sessionCode}`);
+
     });
 
     // Récepteur : envoyer la réponse SDP
     socket.on('send-answer', ({ sessionCode, answer }) => {
-        console.log(`[${socket.id}] Réponse SDP pour session ${sessionCode}`);
 
         const session = sessions.get(sessionCode);
         if (session && session.receiverId === socket.id) {
@@ -197,17 +194,13 @@ io.on('connection', (socket: TypedSocket) => {
 
     // Déconnexion
     socket.on('disconnect', () => {
-        console.log(`[${socket.id}] Client déconnecté`);
-
         for (const [code, session] of sessions.entries()) {
             if (session.senderId === socket.id) {
-                console.log(`Session ${code} fermée (émetteur déconnecté)`);
                 if (session.receiverId) {
                     io.to(session.receiverId).emit('sender-disconnected');
                 }
                 sessions.delete(code);
             } else if (session.receiverId === socket.id) {
-                console.log(`Récepteur déconnecté de session ${code}`);
                 session.receiverId = null;
                 io.to(session.senderId).emit('receiver-disconnected');
             }

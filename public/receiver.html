@@ -21,6 +21,12 @@
             padding: 30px;
         }
 
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+        }
+
         /* Header */
         .header {
             display: flex;
@@ -66,6 +72,27 @@
             color: #f1f5f9;
             font-size: 24px;
             font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+
+            .header-left {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .title h1 {
+                font-size: 20px;
+            }
+
+            .title-icon {
+                font-size: 20px;
+            }
         }
 
         .status-badge {
@@ -133,13 +160,18 @@
         /* Video Container */
         .video-container {
             flex: 1;
-            display: flex;
+            display: none;
+            /* Hidden by default */
             flex-direction: column;
             background: #1e293b;
             border-radius: 16px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             overflow: hidden;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .video-container.active {
+            display: flex;
         }
 
         .video-wrapper {
@@ -221,13 +253,58 @@
             background: #1e293b;
             border-radius: 16px;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 24px;
-            margin-top: 20px;
+            padding: 30px;
+            margin: auto;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .connection-panel.hidden {
+            display: none;
+        }
+
+        .connection-title {
+            color: #f1f5f9;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .connection-description {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 24px;
+            text-align: center;
         }
 
         .input-group {
             display: flex;
             gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            .connection-panel {
+                padding: 20px;
+            }
+
+            .connection-title {
+                font-size: 18px;
+            }
+
+            .input-group {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            input {
+                width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+            }
         }
 
         input {
@@ -352,7 +429,9 @@
         </div>
     </div>
 
-    <div class="connection-panel">
+    <div class="connection-panel" id="connectionPanel">
+        <h2 class="connection-title">📺 Rejoindre une session</h2>
+        <p class="connection-description">Entrez le code de session à 4 caractères fourni par le serveur</p>
         <div class="input-group">
             <input
                    type="text"
@@ -374,6 +453,8 @@
         const statusText = document.getElementById('statusText');
         const codeInput = document.getElementById('codeInput');
         const connectBtn = document.getElementById('connectBtn');
+        const connectionPanel = document.getElementById('connectionPanel');
+        const videoContainer = document.querySelector('.video-container');
         const videoWrapper = document.getElementById('videoWrapper');
         const fullscreenBtn = document.getElementById('fullscreenBtn');
         const exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
@@ -408,6 +489,11 @@
                         console.log('Track reçu:', event.streams[0]);
                         remoteVideo.srcObject = event.streams[0];
                         placeholder.classList.add('hidden');
+
+                        // Show video container and hide connection panel
+                        videoContainer.classList.add('active');
+                        connectionPanel.classList.add('hidden');
+
                         updateStatus('connected', 'Connecté');
                     };
 
@@ -490,6 +576,11 @@
                 socket.disconnect();
                 socket = null;
             }
+
+            // Restore initial state
+            videoContainer.classList.remove('active');
+            connectionPanel.classList.remove('hidden');
+            placeholder.classList.remove('hidden');
         }
 
         // Event listeners
