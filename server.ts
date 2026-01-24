@@ -40,6 +40,7 @@ interface ServerToClientEvents {
     'receiver-connected': () => void;
     'receiver-disconnected': () => void;
     'sender-disconnected': () => void;
+    'request-offer': () => void;
     'error': (data: { message: string }) => void;
 }
 
@@ -162,18 +163,17 @@ io.on('connection', (socket: TypedSocket) => {
         session.receiverId = socket.id;
         socket.join(sessionCode);
 
-        if (session.senderOffer) {
-            socket.emit('receive-offer', { offer: session.senderOffer });
-        }
-
-        session.senderCandidates.forEach(candidate => {
-            socket.emit('receive-ice-candidate', { candidate });
-        });
+        // Nouvelle connexion -> on repart sur une négociation propre
+        session.receiverAnswer = null;
+        session.receiverCandidates = [];
+        session.senderOffer = null;
+        session.senderCandidates = [];
 
         socket.emit('session-joined', { sessionCode });
 
         // Notifier l'émetteur qu'un récepteur s'est connecté
         io.to(session.senderId).emit('receiver-connected');
+        io.to(session.senderId).emit('request-offer');
 
 
     });
@@ -202,6 +202,8 @@ io.on('connection', (socket: TypedSocket) => {
                 sessions.delete(code);
             } else if (session.receiverId === socket.id) {
                 session.receiverId = null;
+                session.receiverAnswer = null;
+                session.receiverCandidates = [];
                 io.to(session.senderId).emit('receiver-disconnected');
             }
         }

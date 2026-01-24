@@ -3,7 +3,7 @@
 ## 📋 Vue d'ensemble
 
 **Type de projet** : Application de partage d'écran WebRTC peer-to-peer  
-**Stack technique** : Node.js + Express + Socket.IO + WebRTC  
+**Stack technique** : Node.js + Express + Socket.IO + WebRTC + Alpine.js  
 **Architecture** : Client-serveur avec signalisation centralisée, flux média P2P
 
 ## 🏗️ Architecture
@@ -15,11 +15,12 @@
 │                                                             │
 │  Browser (Serveur)          Node.js Server          Browser (Client) │
 │  ┌──────────────┐          ┌──────────────┐        ┌──────────────┐ │
-│  │ sender.html  │◄────────►│  server.js   │◄──────►│receiver.html │ │
+│  │ sender.html  │◄────────►│  server.ts   │◄──────►│receiver.html │ │
 │  │              │ Socket.IO│              │Socket.IO│              │ │
 │  │ - Capture    │          │ - Routing    │        │ - Playback   │ │
 │  │ - WebRTC PC  │          │ - Sessions   │        │ - WebRTC PC  │ │
 │  │ - Preview    │          │ - SDP/ICE    │        │ - Stats      │ │
+│  │ - Alpine.js  │          │ - Reconnect  │        │ - Alpine.js  │ │
 │  └──────┬───────┘          └──────────────┘        └──────┬───────┘ │
 │         │                                                  │         │
 │         └──────────────── P2P Direct ─────────────────────┘         │
@@ -31,7 +32,7 @@
 
 ```
 webrtc-p2p/
-├── server.js                 # Serveur de signalisation
+├── server.ts                 # Serveur de signalisation (TypeScript)
 ├── package.json              # Dépendances npm
 ├── Dockerfile               # Container Docker
 ├── docker-compose.yml       # Orchestration
@@ -42,17 +43,26 @@ webrtc-p2p/
     ├── index.html           # Homepage (choix serveur/client)
     ├── sender.html          # Interface serveur (partage)
     └── receiver.html        # Interface client (visualisation)
+    ├── css/
+    │   └── style.css         # Styles globaux
+    └── js/
+        ├── sender.js         # Logique UI émetteur (Alpine)
+        ├── receiver.js       # Logique UI récepteur (Alpine)
+        └── modules/
+            ├── Signaling.js  # Abstraction Socket.IO
+            └── WebRTC.js     # Abstraction RTCPeerConnection
 ```
 
 ## 🔧 Composants principaux
 
-### 1. `server.js` - Serveur de signalisation
+### 1. `server.ts` - Serveur de signalisation
 
 **Rôle** : Échanger les SDP et ICE candidates entre pairs  
 **Port** : 3000 (configurable via ENV)  
 **Dépendances** : Express, Socket.IO
 
 #### Routes HTTP
+
 ```javascript
 GET  /              → index.html (homepage)
 GET  /sender        → sender.html (serveur)
@@ -63,16 +73,19 @@ GET  /health        → { status, sessions } (healthcheck)
 #### Événements Socket.IO
 
 **Émetteur (serveur) → Signaling**
+
 - `create-session` : Créer une session avec code
 - `send-offer` : Envoyer SDP offer
 - `send-ice-candidate` : Envoyer ICE candidate
 
 **Récepteur (client) → Signaling**
+
 - `join-session` : Rejoindre une session via code
 - `send-answer` : Envoyer SDP answer
 - `send-ice-candidate` : Envoyer ICE candidate
 
 **Signaling → Émetteur/Récepteur**
+
 - `session-created` : Confirmation création session
 - `session-joined` : Confirmation connexion session
 - `receive-offer` : Recevoir SDP offer
@@ -81,9 +94,11 @@ GET  /health        → { status, sessions } (healthcheck)
 - `receiver-connected` : Notification connexion client
 - `receiver-disconnected` : Notification déconnexion client
 - `sender-disconnected` : Notification déconnexion serveur
+- `request-offer` : Demande de renégociation (reconnexion)
 - `error` : Erreur (session non trouvée, etc.)
 
 #### Structure de session
+
 ```javascript
 {
   senderId: string,              // Socket ID de l'émetteur
@@ -100,29 +115,29 @@ GET  /health        → { status, sessions } (healthcheck)
 **Rôle** : Point d'entrée, choix serveur/client  
 **Dépendances** : Aucune (HTML/CSS/JS pur)  
 **Navigation** :
+
 - Bouton "Serveur" → `/sender`
 - Bouton "Client" → `/receiver`
 
-### 3. `public/sender.html` - Interface serveur
+### 3. `public/sender.html` + `public/js/sender.js` - Interface serveur
 
 **Rôle** : Capturer et partager l'écran  
-**Dépendances** : Socket.IO client
+**Dépendances** : Socket.IO client, Alpine.js
 
 #### Fonctionnalités
+
 1. **Partage initial** : `getDisplayMedia()` → Sélection écran/fenêtre/onglet
 2. **Changement de source** : `replaceTrack()` → Re-sélection sans déconnexion
 3. **Preview local** : `<video>` avec `srcObject`
 4. **Gestion arrêt** : Détection `track.onended` (bouton Chrome)
 
-#### Variables globales importantes
-```javascript
-let pc = null;              // RTCPeerConnection
-let stream = null;          // MediaStream (écran partagé)
-let socket = null;          // Socket.IO connection
-const sessionCode = ...;    // Code à 4 caractères
-```
+#### Modules principaux
+
+- `Signaling` : gestion des événements Socket.IO
+- `WebRTC` : gestion de `RTCPeerConnection` et paramètres d’encodage
 
 #### Flux WebRTC (émetteur)
+
 ```
 1. getDisplayMedia() → stream
 2. pc.addTrack(track, stream)
@@ -134,23 +149,32 @@ const sessionCode = ...;    // Code à 4 caractères
 8. Connexion P2P établie
 ```
 
-### 4. `public/receiver.html` - Interface client
+#### Reconnexion (émetteur)
+
+```
+1. Le serveur émet request-offer quand un récepteur se (re)connecte
+2. L’émetteur crée une nouvelle offer avec iceRestart
+3. socket.emit('send-offer', { sessionCode, offer })
+```
+
+### 4. `public/receiver.html` + `public/js/receiver.js` - Interface client
 
 **Rôle** : Recevoir et afficher le flux vidéo  
-**Dépendances** : Socket.IO client
+**Dépendances** : Socket.IO client, Alpine.js
 
 #### Fonctionnalités
+
 1. **Connexion via code** : Input 4 caractères → `join-session`
 2. **Réception flux** : `pc.ontrack` → `<video srcObject>`
 3. **Statistiques** : `pc.getStats()` → Débit, type connexion
 
-#### Variables globales importantes
-```javascript
-let pc = null;              // RTCPeerConnection
-let socket = null;          // Socket.IO connection
-```
+#### Modules principaux
+
+- `Signaling` : gestion des événements Socket.IO
+- `WebRTC` : gestion de `RTCPeerConnection`
 
 #### Flux WebRTC (récepteur)
+
 ```
 1. socket.emit('join-session', { sessionCode })
 2. Recevoir offer du serveur
@@ -175,12 +199,16 @@ SERVEUR                  SIGNALING              CLIENT
   │ send-offer (SDP)        │                      │
   ├────────────────────────►│                      │
   │                         │                      │
-  │                         │    join-session      │
+    │                         │    join-session      │
   │                         │◄─────────────────────┤
   │                         │ session-joined       │
   │                         ├─────────────────────►│
-  │                         │ receive-offer        │
-  │                         ├─────────────────────►│
+    │                         │ request-offer        │
+    │                         ├─────────────────────►│
+    │ send-offer (SDP)        │                      │
+    ├────────────────────────►│                      │
+    │                         │ receive-offer        │
+    │                         ├─────────────────────►│
   │                         │                      │
   │                         │  send-answer (SDP)   │
   │ receive-answer          │◄─────────────────────┤
@@ -208,33 +236,35 @@ SERVEUR                  SIGNALING              CLIENT
 
 ### Modifier le style de l'interface
 
-**Fichiers concernés** : `public/*.html` (section `<style>`)
+**Fichiers concernés** : `public/css/style.css`
 
 Chaque fichier HTML contient son CSS inline. Rechercher :
+
 - `body { ... }` pour le fond
 - `.btn-primary { ... }` pour les boutons
 - `.container { ... }` pour les cartes
 
 ### Ajouter une fonctionnalité WebRTC
 
-**Fichiers concernés** : `public/sender.html` et/ou `public/receiver.html`
+**Fichiers concernés** : `public/js/sender.js`, `public/js/receiver.js`, `public/js/modules/WebRTC.js`
 
 1. Modifier le `RTCPeerConnection` (variable `pc`)
 2. Ajouter des événements `pc.onXXX`
 3. Mettre à jour la signalisation si nécessaire
 
 Exemple : Ajouter l'audio
+
 ```javascript
 // sender.html
 stream = await navigator.mediaDevices.getDisplayMedia({
-    video: true,
-    audio: true  // ← Modifier ici
+  video: true,
+  audio: true, // ← Modifier ici
 });
 ```
 
 ### Modifier la logique de session
 
-**Fichier concerné** : `server.js`
+**Fichier concerné** : `server.ts`
 
 - Stockage : `const sessions = new Map()`
 - Création : Event `create-session`
@@ -243,17 +273,17 @@ stream = await navigator.mediaDevices.getDisplayMedia({
 
 ### Ajouter une route HTTP
 
-**Fichier concerné** : `server.js`
+**Fichier concerné** : `server.ts`
 
 ```javascript
-app.get('/nouvelle-route', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'fichier.html'));
+app.get("/nouvelle-route", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "fichier.html"));
 });
 ```
 
 ### Modifier le code de session
 
-**Fichier concerné** : `public/sender.html` (ligne ~15)
+**Fichier concerné** : `public/js/sender.js`
 
 ```javascript
 const sessionCode = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -265,13 +295,14 @@ const sessionCode = Math.random().toString(36).substring(2, 6).toUpperCase();
 ### Activer les logs WebRTC
 
 Ajouter dans `sender.html` ou `receiver.html` :
+
 ```javascript
-pc.addEventListener('icegatheringstatechange', () => {
-    console.log('ICE Gathering:', pc.iceGatheringState);
+pc.addEventListener("icegatheringstatechange", () => {
+  console.log("ICE Gathering:", pc.iceGatheringState);
 });
 
-pc.addEventListener('signalingstatechange', () => {
-    console.log('Signaling:', pc.signalingState);
+pc.addEventListener("signalingstatechange", () => {
+  console.log("Signaling:", pc.signalingState);
 });
 ```
 
@@ -279,14 +310,14 @@ pc.addEventListener('signalingstatechange', () => {
 
 ```javascript
 pc.onicecandidate = (e) => {
-    if (e.candidate) {
-        console.log('Candidate:', {
-            type: e.candidate.type,
-            protocol: e.candidate.protocol,
-            address: e.candidate.address,
-            port: e.candidate.port
-        });
-    }
+  if (e.candidate) {
+    console.log("Candidate:", {
+      type: e.candidate.type,
+      protocol: e.candidate.protocol,
+      address: e.candidate.address,
+      port: e.candidate.port,
+    });
+  }
 };
 ```
 
@@ -294,12 +325,12 @@ pc.onicecandidate = (e) => {
 
 ```javascript
 setInterval(async () => {
-    const stats = await pc.getStats();
-    stats.forEach(report => {
-        if (report.type === 'inbound-rtp') {
-            console.log('Inbound RTP:', report);
-        }
-    });
+  const stats = await pc.getStats();
+  stats.forEach((report) => {
+    if (report.type === "inbound-rtp") {
+      console.log("Inbound RTP:", report);
+    }
+  });
 }, 1000);
 ```
 
@@ -340,10 +371,10 @@ WebRTC nécessite HTTPS sauf sur `localhost`. Le serveur de signalisation peut �
 
 ```yaml
 environment:
-  - PORT=8080  # Au lieu de 3000
+  - PORT=8080 # Au lieu de 3000
 
 ports:
-  - "8080:8080"  # Au lieu de 3000:3000
+  - "8080:8080" # Au lieu de 3000:3000
 ```
 
 ### Modifier le serveur STUN
@@ -352,9 +383,9 @@ ports:
 
 ```javascript
 pc = new RTCPeerConnection({
-    iceServers: [
-        { urls: 'stun:stun.example.com:19302' }  // Modifier ici
-    ]
+  iceServers: [
+    { urls: "stun:stun.example.com:19302" }, // Modifier ici
+  ],
 });
 ```
 
@@ -362,14 +393,14 @@ pc = new RTCPeerConnection({
 
 ```javascript
 pc = new RTCPeerConnection({
-    iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { 
-            urls: 'turn:turn.example.com:3478',
-            username: 'user',
-            credential: 'pass'
-        }
-    ]
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    {
+      urls: "turn:turn.example.com:3478",
+      username: "user",
+      credential: "pass",
+    },
+  ],
 });
 ```
 
@@ -379,29 +410,32 @@ pc = new RTCPeerConnection({
 
 ```javascript
 stream = await navigator.mediaDevices.getDisplayMedia({
-    video: {
-        width: { max: 1920 },
-        height: { max: 1080 },
-        frameRate: { max: 30 }
-    },
-    audio: false
+  video: {
+    width: { max: 1920 },
+    height: { max: 1080 },
+    frameRate: { max: 30 },
+  },
+  audio: false,
 });
 ```
 
 ## 📝 Conventions de code
 
 ### JavaScript
+
 - **Variables** : `camelCase`
 - **Constantes** : `UPPER_CASE` (si vraiment constantes)
 - **Fonctions** : `camelCase`
 - **Async/await** : Préféré à `.then()`
 
 ### HTML/CSS
+
 - **Classes CSS** : `kebab-case`
 - **IDs** : `camelCase`
 - **Inline styles** : Éviter (utiliser classes)
 
 ### Socket.IO events
+
 - **Format** : `kebab-case`
 - **Exemples** : `create-session`, `send-offer`, `receive-answer`
 
@@ -427,10 +461,10 @@ docker-compose up --build
 
 ```javascript
 // Console navigateur (serveur)
-socket.emit('create-session', { sessionCode: 'TEST' });
+socket.emit("create-session", { sessionCode: "TEST" });
 
 // Console navigateur (client)
-socket.emit('join-session', { sessionCode: 'TEST' });
+socket.emit("join-session", { sessionCode: "TEST" });
 ```
 
 ## 🎓 Ressources

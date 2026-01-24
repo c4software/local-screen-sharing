@@ -44,9 +44,9 @@ export default class WebRTC {
         });
     }
 
-    async createOffer() {
+    async createOffer(options = undefined) {
         if (!this.pc) throw new Error("PC not created");
-        const offer = await this.pc.createOffer();
+        const offer = await this.pc.createOffer(options);
         await this.pc.setLocalDescription(offer);
         return offer;
     }

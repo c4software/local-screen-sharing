@@ -16,7 +16,8 @@ export default class Signaling {
             'session-created', 'session-joined',
             'receive-offer', 'receive-answer',
             'receive-ice-candidate',
-            'receiver-connected', 'receiver-disconnected', 'sender-disconnected'
+            'receiver-connected', 'receiver-disconnected', 'sender-disconnected',
+            'request-offer'
         ];
 
         events.forEach(event => {

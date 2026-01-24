@@ -31,6 +31,16 @@ Alpine.data('sender', () => ({
             this.updateStatus('connected', 'Client connecté');
         });
 
+        this.signaling.on('request-offer', async () => {
+            if (!this.webrtc || !this.isSessionActive) return;
+            try {
+                const offer = await this.webrtc.createOffer({ iceRestart: true });
+                this.signaling.sendOffer(this.sessionCode, offer);
+            } catch (e) {
+                console.error('Error creating restart offer', e);
+            }
+        });
+
         this.signaling.on('receive-answer', async ({ answer }) => {
             if (this.webrtc) {
                 await this.webrtc.setRemoteDescription(answer);
