@@ -5,44 +5,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Client - Visualisation</title>
-    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        .video-wrapper:fullscreen .fullscreen-controls {
+            display: flex;
+            pointer-events: auto;
+        }
+
+        .video-wrapper:fullscreen:hover .fullscreen-controls {
+            opacity: 1;
+        }
+    </style>
     <script src="/socket.io/socket.io.js"></script>
     <script type="module" src="js/receiver.js"></script>
 </head>
 
-<body x-data="receiver" x-cloak>
-    <div class="header">
-        <div class="header-left">
-            <button class="back-btn" onclick="window.location.href='/'">←</button>
-            <div class="title">
-                <span class="title-icon">📺</span>
-                <h1>Client</h1>
+<body x-data="receiver" x-cloak class="min-h-screen bg-slate-100 text-slate-900 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100">
+    <div class="max-w-4xl mx-auto p-6 md:p-8">
+        <div class="flex items-center justify-end mb-6">
+            <div class="flex items-center gap-2 rounded-full border px-4 py-2 text-sm"
+                 :class="{
+                    'bg-emerald-500/15 border-emerald-500/30 text-emerald-300': status === 'connected',
+                    'bg-amber-500/15 border-amber-500/30 text-amber-300': status === 'connecting',
+                    'bg-slate-500/15 border-slate-500/30 text-slate-300': status === 'disconnected'
+                }">
+                <div class="h-2 w-2 rounded-full"
+                     :class="{
+                        'bg-emerald-400 animate-pulse': status === 'connected',
+                        'bg-amber-400 animate-pulse': status === 'connecting',
+                        'bg-slate-400': status === 'disconnected'
+                    }"></div>
+                <span x-text="statusText">Déconnecté</span>
             </div>
         </div>
-        <div class="status-badge" :class="status">
-            <div class="status-dot"></div>
-            <span class="status-text" x-text="statusText">Déconnecté</span>
-        </div>
-    </div>
 
-    <div class="video-container receiver-mode" x-show="isConnected" x-cloak>
-        <div class="video-wrapper" x-ref="videoWrapper" @dblclick="toggleFullscreen">
-            <video x-ref="remoteVideo" autoplay playsinline></video>
-            <div class="fullscreen-controls">
-                <button class="control-btn" @click="toggleFullscreen" title="Quitter plein écran">✕</button>
+        <div class="rounded-2xl border border-slate-200 bg-white/90 shadow-2xl overflow-hidden group dark:border-white/10 dark:bg-slate-900/90" x-show="isConnected" x-cloak>
+            <div class="relative bg-black flex items-center justify-center min-h-[320px] video-wrapper" x-ref="videoWrapper" @dblclick="toggleFullscreen">
+                <video x-ref="remoteVideo" autoplay playsinline class="h-full w-full object-contain"></video>
+                <div class="fullscreen-controls absolute top-4 right-4 flex items-center gap-2 opacity-0 pointer-events-none transition-opacity">
+                    <button class="rounded-lg bg-black/40 px-3 py-2 text-sm text-white hover:bg-black/60" @click="toggleFullscreen" title="Quitter plein écran">✕</button>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 bg-black/60 px-4 py-3 opacity-0 transition-opacity group-hover:opacity-100">
+                <button class="rounded-lg bg-white/10 px-3 py-2 text-sm text-white hover:bg-indigo-500/70" @click="toggleFullscreen" title="Plein écran">⛶</button>
             </div>
         </div>
-        <div class="video-controls">
-            <button class="control-btn" @click="toggleFullscreen" title="Plein écran">⛶</button>
-        </div>
-    </div>
 
-    <div class="connection-panel" x-show="!isConnected" x-cloak>
-        <h2 class="connection-title">📺 Rejoindre une session</h2>
-        <p class="connection-description">Entrez le code de session à 4 caractères fourni par le serveur</p>
-        <div class="input-group">
-            <input type="text" x-model="code" placeholder="Entrez le code de session (ex: A1B2)" maxlength="4" @keyup.enter="connect" />
-            <button @click="connect" class="btn btn-primary">🔗 Connecter</button>
+        <div class="rounded-2xl border border-slate-200 bg-white/90 p-8 text-center dark:border-white/10 dark:bg-slate-900/90" x-show="!isConnected" x-cloak>
+            <h2 class="text-xl font-semibold mb-2">📺 Rejoindre une session</h2>
+            <p class="text-sm text-slate-600 dark:text-slate-400 mb-6">Entrez le code de session à 4 caractères fourni par le serveur</p>
+            <div class="flex flex-col gap-3 sm:flex-row">
+                <input type="text" x-model="code" placeholder="Entrez le code de session (ex: A1B2)" maxlength="4" @keyup.enter="connect"
+                       class="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-white/15 dark:bg-white/5 dark:text-slate-100" />
+                <button @click="connect" class="rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-indigo-500/30">
+                    🔗 Connecter
+                </button>
+            </div>
         </div>
     </div>
 </body>

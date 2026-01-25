@@ -5,31 +5,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebRTC P2P - Partage d'écran</title>
-    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="home">
-    <div class="home-container">
-        <div class="home-logo">🖥️</div>
-        <h1>Partage d'écran P2P</h1>
-        <p class="home-subtitle">Partagez votre écran en temps réel via une connexion peer-to-peer sécurisée</p>
+<body class="min-h-screen bg-slate-100 text-slate-900 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100 flex items-center justify-center p-6">
+    <div class="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white/90 p-10 text-center shadow-2xl dark:border-white/10 dark:bg-slate-900/90">
+        <div class="text-6xl mb-6">🖥️</div>
+        <h1 class="text-3xl font-semibold mb-3">Partage d'écran P2P</h1>
+        <p class="text-slate-600 dark:text-slate-400 mb-10">Partagez votre écran en temps réel via une connexion peer-to-peer sécurisée</p>
 
-        <div class="cards">
-            <div class="card" onclick="window.location.href='/sender'">
-                <div class="card-icon">📡</div>
-                <div class="card-title">Serveur</div>
-                <div class="card-desc">Partager mon écran avec d'autres</div>
+        <div class="grid gap-6 md:grid-cols-2">
+            <div class="cursor-pointer rounded-2xl border border-slate-200 bg-slate-50 p-8 transition hover:-translate-y-1 hover:border-indigo-500/60 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/70 dark:hover:border-indigo-400/50" onclick="window.location.href='/sender'">
+                <div class="text-4xl mb-4">📡</div>
+                <div class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">Serveur</div>
+                <div class="text-sm text-slate-600 dark:text-slate-400">Partager mon écran avec d'autres</div>
             </div>
 
-            <div class="card" onclick="window.location.href='/receiver'">
-                <div class="card-icon">📺</div>
-                <div class="card-title">Client</div>
-                <div class="card-desc">Voir l'écran partagé d'un serveur</div>
+            <div class="cursor-pointer rounded-2xl border border-slate-200 bg-slate-50 p-8 transition hover:-translate-y-1 hover:border-indigo-500/60 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/70 dark:hover:border-indigo-400/50" onclick="window.location.href='/receiver'">
+                <div class="text-4xl mb-4">📺</div>
+                <div class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">Client</div>
+                <div class="text-sm text-slate-600 dark:text-slate-400">Voir l'écran partagé d'un serveur</div>
             </div>
-        </div>
-
-        <div class="footer">
-            WebRTC • Peer-to-peer • Chiffré de bout en bout
         </div>
     </div>
 </body>

@@ -12,6 +12,7 @@ Alpine.data('sender', () => ({
     stream: null,
     signaling: null,
     webrtc: null,
+    isSupported: !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia),
 
     init() {
         this.signaling = new Signaling();
