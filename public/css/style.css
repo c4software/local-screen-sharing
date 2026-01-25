@@ -1,1 +1,35 @@
-/* Styles migrés vers Tailwind. */
+/* Toast notifications (sender) */
+.toast {
+	background: rgba(15, 23, 42, 0.85); /* slate-900 */
+	color: #fff;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	pointer-events: none; /* don't block UI behind */
+}
+
+.toast--success {
+	background: rgba(16, 185, 129, 0.18); /* emerald */
+	border-color: rgba(16, 185, 129, 0.45);
+	color: #10b981;
+}
+
+.toast--info {
+	background: rgba(59, 130, 246, 0.18); /* blue */
+	border-color: rgba(59, 130, 246, 0.45);
+	color: #3b82f6;
+}
+
+.toast--warning {
+	background: rgba(245, 158, 11, 0.18); /* amber */
+	border-color: rgba(245, 158, 11, 0.45);
+	color: #f59e0b;
+}
+
+.toast--error {
+	background: rgba(239, 68, 68, 0.18); /* red */
+	border-color: rgba(239, 68, 68, 0.45);
+	color: #ef4444;
+}
+

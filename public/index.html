@@ -9,23 +9,26 @@
 </head>
 
 <body class="min-h-screen bg-slate-100 text-slate-900 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100 flex items-center justify-center p-6">
-    <div class="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white/90 p-10 text-center shadow-2xl dark:border-white/10 dark:bg-slate-900/90">
-        <div class="text-6xl mb-6">🖥️</div>
-        <h1 class="text-3xl font-semibold mb-3">Partage d'écran P2P</h1>
-        <p class="text-slate-600 dark:text-slate-400 mb-10">Partagez votre écran en temps réel via une connexion peer-to-peer sécurisée</p>
+    <div class="w-full max-w-4xl rounded-3xl border border-slate-200 bg-white/95 p-12 text-center shadow-2xl dark:border-white/10 dark:bg-slate-900/95">
+        <h1 class="text-4xl font-bold mb-3 text-slate-900 dark:text-slate-50">Partage d'écran</h1>
+        <p class="text-lg text-slate-600 dark:text-slate-300 mb-12 max-w-2xl mx-auto">Partagez votre écran en temps réel avec une connexion sécurisée et chiffrée. Aucune donnée n'est stockée sur nos serveurs.</p>
 
         <div class="grid gap-6 md:grid-cols-2">
-            <div class="cursor-pointer rounded-2xl border border-slate-200 bg-slate-50 p-8 transition hover:-translate-y-1 hover:border-indigo-500/60 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/70 dark:hover:border-indigo-400/50" onclick="window.location.href='/sender'">
-                <div class="text-4xl mb-4">📡</div>
-                <div class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">Serveur</div>
-                <div class="text-sm text-slate-600 dark:text-slate-400">Partager mon écran avec d'autres</div>
-            </div>
+            <button onclick="window.location.href='/sender'" class="group rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 p-10 transition hover:border-indigo-400/50 hover:shadow-xl dark:border-white/10 dark:from-slate-800 dark:to-slate-900 dark:hover:border-indigo-500/50">
+                <div class="text-5xl mb-5 inline-block rounded-full bg-indigo-100 p-4 transition group-hover:scale-110 dark:bg-indigo-900/50">📤</div>
+                <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-3">Partager l'écran</h2>
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Envoyez votre écran ou une application en temps réel aux participants</p>
+            </button>
 
-            <div class="cursor-pointer rounded-2xl border border-slate-200 bg-slate-50 p-8 transition hover:-translate-y-1 hover:border-indigo-500/60 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/70 dark:hover:border-indigo-400/50" onclick="window.location.href='/receiver'">
-                <div class="text-4xl mb-4">📺</div>
-                <div class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">Client</div>
-                <div class="text-sm text-slate-600 dark:text-slate-400">Voir l'écran partagé d'un serveur</div>
-            </div>
+            <button onclick="window.location.href='/receiver'" class="group rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 p-10 transition hover:border-indigo-400/50 hover:shadow-xl dark:border-white/10 dark:from-slate-800 dark:to-slate-900 dark:hover:border-indigo-500/50">
+                <div class="text-5xl mb-5 inline-block rounded-full bg-indigo-100 p-4 transition group-hover:scale-110 dark:bg-indigo-900/50">📥</div>
+                <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-3">Regarder</h2>
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Recevez et visualisez l'écran partagé d'une autre personne</p>
+            </button>
+        </div>
+
+        <div class="mt-10 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-white/10 pt-8">
+            <p>Connexion peer-to-peer directe • Aucun intermédiaire • Chiffrement de bout en bout</p>
         </div>
     </div>
 </body>

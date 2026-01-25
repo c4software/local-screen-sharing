@@ -13,6 +13,7 @@ Alpine.data('sender', () => ({
     signaling: null,
     webrtc: null,
     isSupported: !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia),
+    notification: null,
 
     init() {
         this.signaling = new Signaling();
@@ -25,11 +26,13 @@ Alpine.data('sender', () => ({
         this.signaling.on('session-created', ({ sessionCode }) => {
             this.sessionCode = sessionCode;
             this.isSessionActive = true;
-            this.updateStatus('warning', 'En attente...');
+            this.updateStatus('warning', "En attente d'une connexion client...");
+            this.showNotification('Code de session généré. Partagez-le avec vos participants.', 'success');
         });
 
         this.signaling.on('receiver-connected', () => {
-            this.updateStatus('connected', 'Client connecté');
+            this.updateStatus('connected', 'Participant connecté');
+            this.showNotification('Un participant vient de se connecter', 'success');
         });
 
         this.signaling.on('request-offer', async () => {
@@ -37,15 +40,17 @@ Alpine.data('sender', () => ({
             try {
                 const offer = await this.webrtc.createOffer({ iceRestart: true });
                 this.signaling.sendOffer(this.sessionCode, offer);
+                this.showNotification('Rétablissement de la connexion...', 'info');
             } catch (e) {
                 console.error('Error creating restart offer', e);
+                this.showNotification('Erreur : impossible de rétablir la connexion', 'error');
             }
         });
 
         this.signaling.on('receive-answer', async ({ answer }) => {
             if (this.webrtc) {
                 await this.webrtc.setRemoteDescription(answer);
-                this.updateStatus('connected', 'En diffusion');
+                this.updateStatus('connected', 'Diffusion active');
             }
         });
 
@@ -56,13 +61,19 @@ Alpine.data('sender', () => ({
         });
 
         this.signaling.on('receiver-disconnected', () => {
-            this.updateStatus('warning', 'Client déconnecté');
+            this.updateStatus('warning', "En attente d'une connexion client...");
+            this.showNotification("Le participant s'est déconnecté", 'warning');
         });
 
         this.signaling.on('error', ({ message }) => {
-            alert('Erreur: ' + message);
+            this.showNotification('Erreur serveur : ' + message, 'error');
             this.stopSharing();
         });
+    },
+
+    showNotification(message, type = 'info') {
+        this.notification = { message, type };
+        setTimeout(() => { this.notification = null; }, 4000);
     },
 
     updateStatus(type, text) {
@@ -78,7 +89,7 @@ Alpine.data('sender', () => ({
 
     async startSharing() {
         try {
-            this.updateStatus('warning', 'Connexion...');
+            this.updateStatus('warning', 'Sélectionnez une source...');
             const code = Math.random().toString(36).substring(2, 6).toUpperCase();
 
             this.stream = await navigator.mediaDevices.getDisplayMedia({
@@ -90,7 +101,10 @@ Alpine.data('sender', () => ({
             this.$refs.preview.srcObject = this.stream;
 
             // Handle stream end
-            this.stream.getVideoTracks()[0].onended = () => this.stopSharing();
+            this.stream.getVideoTracks()[0].onended = () => {
+                this.showNotification("Partage d'écran arrêté", 'info');
+                this.stopSharing();
+            };
 
             // Setup WebRTC
             this.webrtc = new WebRTC(this.signaling);
@@ -98,7 +112,7 @@ Alpine.data('sender', () => ({
 
             this.webrtc.onConnectionStateChange = (state) => {
                 if (state === 'connected' || state === 'completed') {
-                    this.updateStatus('connected', 'Connecté (P2P)');
+                    this.updateStatus('connected', 'Diffusion active (P2P)');
                 }
             };
 
@@ -115,9 +129,17 @@ Alpine.data('sender', () => ({
             this.signaling.createSession(code);
             this.signaling.sendOffer(code, offer);
 
+            this.showNotification("Partage d'écran actif. Attendez une connexion client.", 'success');
+
         } catch (err) {
-            console.error(err);
-            this.updateStatus('inactive', 'Inactif'); // Reset if cancelled
+            if (err.name === 'NotAllowedError') {
+                this.showNotification("Vous avez refusé l'accès au partage d'écran", 'error');
+            } else if (err.name === 'NotFoundError') {
+                this.showNotification('Aucun écran disponible pour le partage', 'error');
+            } else {
+                this.showNotification('Erreur lors du démarrage du partage: ' + err.message, 'error');
+            }
+            this.updateStatus('inactive', 'Inactif');
         }
     },
 
@@ -135,10 +157,12 @@ Alpine.data('sender', () => ({
         this.isSessionActive = false;
         this.updateStatus('inactive', 'Inactif');
         this.sessionCode = '----';
+        this.showNotification("Partage d'écran arrêté", 'info');
     },
 
     async changeSource() {
         try {
+            this.showNotification('Sélectionnez une nouvelle source...', 'info');
             const newStream = await navigator.mediaDevices.getDisplayMedia({
                 video: this.getVideoConstraints(),
                 audio: false
@@ -152,15 +176,24 @@ Alpine.data('sender', () => ({
             this.stream = newStream;
             this.$refs.preview.srcObject = newStream;
 
-            newVideoTrack.onended = () => this.stopSharing();
+            newVideoTrack.onended = () => {
+                this.showNotification("Source d'écran fermée", 'info');
+                this.stopSharing();
+            };
 
             if (this.webrtc) {
                 await this.webrtc.replaceVideoTrack(newVideoTrack);
                 await this.webrtc.applyEncodingParams(parseFloat(this.scale));
+                this.showNotification("Source d'écran changée avec succès", 'success');
             }
 
         } catch (e) {
-            console.log("Change source cancelled", e);
+            if (e.name === 'NotAllowedError') {
+                this.showNotification('Changement de source annulé', 'warning');
+            } else {
+                console.log("Change source error", e);
+                this.showNotification('Erreur lors du changement de source', 'error');
+            }
         }
     },
 
@@ -169,6 +202,9 @@ Alpine.data('sender', () => ({
             const track = this.stream.getVideoTracks()[0];
             if (track) {
                 track.applyConstraints({ frameRate: { max: parseInt(this.fps) } })
+                    .then(() => {
+                        this.showNotification(`Débit ajusté à ${this.fps} FPS`, 'info');
+                    })
                     .catch(e => console.log(e));
             }
         }
@@ -177,6 +213,7 @@ Alpine.data('sender', () => ({
     updateScale() {
         if (this.webrtc) {
             this.webrtc.applyEncodingParams(parseFloat(this.scale));
+            this.showNotification('Résolution mise à jour', 'info');
         }
     }
 }));

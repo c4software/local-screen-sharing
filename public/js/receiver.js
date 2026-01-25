@@ -11,6 +11,7 @@ Alpine.data('receiver', () => ({
     signaling: null,
     webrtc: null,
     sessionCode: '',
+    notification: null,
 
     init() {
         this.signaling = new Signaling();
@@ -40,6 +41,7 @@ Alpine.data('receiver', () => ({
                 this.signaling.sendAnswer(this.sessionCode, answer);
             } catch (e) {
                 console.error('Error handling offer', e);
+                this.showNotification('Erreur lors de la réception du flux', 'error');
             }
         });
 
@@ -50,19 +52,26 @@ Alpine.data('receiver', () => ({
         });
 
         this.signaling.on('session-joined', () => {
-            this.updateStatus('connecting', 'En attente du flux...');
+            this.updateStatus('connecting', 'Connexion au flux vidéo...');
+            this.showNotification('Connecté au serveur. Attente du flux...', 'success');
         });
 
         this.signaling.on('sender-disconnected', () => {
-            this.updateStatus('disconnected', 'Serveur déconnecté');
+            this.updateStatus('disconnected', "Le serveur s'est déconnecté");
+            this.showNotification('Le serveur a fermé la connexion', 'warning');
             this.disconnect(false);
         });
 
         this.signaling.on('error', ({ message }) => {
-            alert('Erreur: ' + message);
-            this.updateStatus('disconnected', 'Erreur');
+            this.showNotification('Erreur serveur : ' + message, 'error');
+            this.updateStatus('disconnected', 'Erreur de connexion');
             this.disconnect();
         });
+    },
+
+    showNotification(message, type = 'info') {
+        this.notification = { message, type };
+        setTimeout(() => { this.notification = null; }, 4000);
     },
 
     updateStatus(type, text) {
@@ -75,12 +84,12 @@ Alpine.data('receiver', () => ({
         this.code = this.code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
         const code = this.code.trim().toUpperCase();
         if (code.length !== 4) {
-            alert('Le code doit faire 4 caractères');
+            this.showNotification('Le code doit contenir exactement 4 caractères', 'error');
             return;
         }
 
         this.sessionCode = code;
-        this.updateStatus('connecting', 'Connexion...');
+        this.updateStatus('connecting', 'Tentative de connexion...');
 
         this.webrtc = new WebRTC(this.signaling);
         this.webrtc.createPeerConnection(this.sessionCode);
@@ -88,13 +97,20 @@ Alpine.data('receiver', () => ({
         this.webrtc.onTrack = (stream) => {
             this.$refs.remoteVideo.srcObject = stream;
             this.isConnected = true;
-            this.updateStatus('connected', 'Connecté');
+            this.updateStatus('connected', 'Flux reçu (P2P)');
+            this.showNotification('Flux vidéo reçu avec succès', 'success');
         };
 
         this.webrtc.onConnectionStateChange = (state) => {
-            if (state === 'connected') this.updateStatus('connected', 'Connecté (P2P)');
-            else if (state === 'disconnected') this.updateStatus('disconnected', 'Déconnecté');
-            else if (state === 'failed') this.updateStatus('disconnected', 'Échec');
+            if (state === 'connected') {
+                this.updateStatus('connected', 'Connecté (P2P)');
+            } else if (state === 'disconnected') {
+                this.updateStatus('disconnected', 'Déconnecté');
+                this.showNotification('La connexion a été perdue', 'warning');
+            } else if (state === 'failed') {
+                this.updateStatus('disconnected', 'Erreur de connexion');
+                this.showNotification("Impossible d'établir la connexion P2P", 'error');
+            }
         };
 
         this.signaling.joinSession(this.sessionCode);
@@ -113,13 +129,17 @@ Alpine.data('receiver', () => ({
             this.code = '';
             this.codeDigits = ['', '', '', ''];
             this.focusInput(0);
+            this.showNotification('Déconnecté', 'info');
         }
     },
 
     toggleFullscreen() {
         const wrapper = this.$refs.videoWrapper;
         if (!document.fullscreenElement) {
-            wrapper.requestFullscreen().catch(console.error);
+            wrapper.requestFullscreen().catch(err => {
+                this.showNotification('Plein écran non disponible', 'error');
+                console.error(err);
+            });
             if (screen.orientation && screen.orientation.lock) {
                 screen.orientation.lock('landscape').catch(() => { });
             }
@@ -172,7 +192,10 @@ Alpine.data('receiver', () => ({
 
     handlePaste(event) {
         const pasted = (event.clipboardData?.getData('text') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
-        if (!pasted) return;
+        if (!pasted) {
+            this.showNotification('Code invalide. Utilisez uniquement des lettres et chiffres.', 'error');
+            return;
+        }
         event.preventDefault();
 
         this.codeDigits = pasted.split('').concat(['', '', '', '']).slice(0, 4);
@@ -180,6 +203,11 @@ Alpine.data('receiver', () => ({
 
         const nextIndex = Math.min(pasted.length, 3);
         this.focusInput(nextIndex);
+
+        // Auto-connect if code is complete
+        if (pasted.length === 4) {
+            this.$nextTick(() => this.connect());
+        }
     },
 
     updateCodeFromDigits() {
