@@ -6,6 +6,7 @@ Alpine.data('receiver', () => ({
     status: 'disconnected', // disconnected, connecting, connected
     statusText: 'Déconnecté',
     code: '',
+    codeDigits: ['', '', '', ''],
     isConnected: false,
     signaling: null,
     webrtc: null,
@@ -70,6 +71,7 @@ Alpine.data('receiver', () => ({
     },
 
     connect() {
+        this.updateCodeFromDigits();
         this.code = this.code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
         const code = this.code.trim().toUpperCase();
         if (code.length !== 4) {
@@ -109,13 +111,9 @@ Alpine.data('receiver', () => ({
         if (fullReset) {
             this.updateStatus('disconnected', 'Déconnecté');
             this.code = '';
+            this.codeDigits = ['', '', '', ''];
+            this.focusInput(0);
         }
-    },
-
-    normalizeCode(event) {
-        const cleaned = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
-        this.code = cleaned;
-        event.target.value = cleaned;
     },
 
     toggleFullscreen() {
@@ -128,6 +126,74 @@ Alpine.data('receiver', () => ({
         } else {
             document.exitFullscreen();
         }
+    },
+
+    handleCodeInput(index, event) {
+        const raw = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const chars = raw.split('');
+
+        if (!chars.length) {
+            this.codeDigits[index] = '';
+            this.updateCodeFromDigits();
+            event.target.value = '';
+            return;
+        }
+
+        this.codeDigits[index] = chars.shift();
+
+        let cursor = index + 1;
+        while (chars.length && cursor < 4) {
+            this.codeDigits[cursor] = chars.shift();
+            cursor += 1;
+        }
+
+        this.updateCodeFromDigits();
+        event.target.value = this.codeDigits[index];
+
+        const nextIndex = Math.min(index + 1, 3);
+        if (this.codeDigits[index]) {
+            this.focusInput(nextIndex);
+        }
+    },
+
+    handleBackspace(index) {
+        if (this.codeDigits[index]) {
+            this.codeDigits[index] = '';
+            this.updateCodeFromDigits();
+            return;
+        }
+
+        if (index > 0) {
+            this.codeDigits[index - 1] = '';
+            this.updateCodeFromDigits();
+            this.focusInput(index - 1);
+        }
+    },
+
+    handlePaste(event) {
+        const pasted = (event.clipboardData?.getData('text') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+        if (!pasted) return;
+        event.preventDefault();
+
+        this.codeDigits = pasted.split('').concat(['', '', '', '']).slice(0, 4);
+        this.updateCodeFromDigits();
+
+        const nextIndex = Math.min(pasted.length, 3);
+        this.focusInput(nextIndex);
+    },
+
+    updateCodeFromDigits() {
+        this.code = this.codeDigits.join('').slice(0, 4);
+    },
+
+    focusInput(index) {
+        this.$nextTick(() => {
+            const el = this.$root.querySelector(`[data-code-index="${index}"]`);
+            if (el) {
+                el.focus();
+                el.select();
+            }
+        });
     }
 }));
 
