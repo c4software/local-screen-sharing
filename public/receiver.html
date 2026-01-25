@@ -72,7 +72,7 @@
             <h2 class="text-xl font-semibold mb-2">📺 Rejoindre une session</h2>
             <p class="text-sm text-slate-600 dark:text-slate-400 mb-6">Entrez le code de session à 4 caractères fourni par le serveur</p>
             <div class="flex flex-col items-center gap-6">
-                <div class="flex justify-center gap-3" x-init="$nextTick(() => $el.querySelector('[data-code-index="0"]')?.focus())">
+                <div class="flex justify-center gap-3" x-init="$nextTick(() => $el.querySelector('[data-code-index=" 0"]')?.focus())">
                     <template x-for="index in 4" :key="index">
                         <input :data-code-index="index - 1" type="text" inputmode="text" maxlength="1" autocomplete="one-time-code" autocapitalize="characters" pattern="[A-Za-z0-9]" aria-label="Caractère du code"
                                class="h-14 w-14 rounded-xl border border-slate-200 bg-white text-center text-2xl font-semibold uppercase tracking-widest shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-white/15 dark:bg-white/5 dark:text-slate-100"
