@@ -72,9 +72,9 @@
             <h2 class="text-xl font-semibold mb-2">📺 Rejoindre une session</h2>
             <p class="text-sm text-slate-600 dark:text-slate-400 mb-6">Entrez le code de session à 4 caractères fourni par le serveur</p>
             <div class="flex flex-col gap-3 sm:flex-row">
-                <input type="text" x-model="code" placeholder="Entrez le code de session (ex: A1B2)" maxlength="4" @keyup.enter="connect"
+                <input type="text" x-model="code" placeholder="Entrez le code de session (ex: A1B2)" maxlength="4" @keyup.enter="connect" @input="normalizeCode($event)" inputmode="text" autocapitalize="characters" autocomplete="one-time-code" pattern="[A-Za-z0-9]{4}" aria-label="Code de session à 4 caractères"
                        class="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-white/15 dark:bg-white/5 dark:text-slate-100" />
-                <button @click="connect" class="rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-indigo-500/30">
+                <button @click="connect" :disabled="code.length !== 4" class="rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none">
                     🔗 Connecter
                 </button>
             </div>

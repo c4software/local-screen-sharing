@@ -70,6 +70,7 @@ Alpine.data('receiver', () => ({
     },
 
     connect() {
+        this.code = this.code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
         const code = this.code.trim().toUpperCase();
         if (code.length !== 4) {
             alert('Le code doit faire 4 caractères');
@@ -109,6 +110,12 @@ Alpine.data('receiver', () => ({
             this.updateStatus('disconnected', 'Déconnecté');
             this.code = '';
         }
+    },
+
+    normalizeCode(event) {
+        const cleaned = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+        this.code = cleaned;
+        event.target.value = cleaned;
     },
 
     toggleFullscreen() {
